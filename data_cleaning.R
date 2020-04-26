@@ -7,8 +7,10 @@
 # Load external libreries
 library(editrules)
 
+cleaning <- function(){
 # Read csv data
 # But first set de wording directory to source file location
+print('Loadind data')
 data <- read.csv('madrid-total-listings.csv')
 
 # Ad hoc Feature selection. Other methods should be considered
@@ -46,7 +48,7 @@ if (sum(is.na(newdata[,])) == 0) {
   aux1 <- nrow(newdata)
   newdata <- na.omit(newdata)
   aux2 <- nrow(newdata)
-  print(paste('Removed:',aux1-aux2,'NA', sep=' '))
+  print(paste('Removed:',aux1-aux2,'records', sep=' '))
 }
 
 # Check if there are INF or NAN values
@@ -103,5 +105,8 @@ ve <- violatedEdits(rules, newdata)
 summary(ve)
 
 # Save newdata
+print('Saving clean data')
 write.csv(newdata, file = "clean_data.csv", row.names = FALSE)
 
+return(newdata)
+}
