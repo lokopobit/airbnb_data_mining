@@ -11,7 +11,7 @@ data$extra_people = as.numeric(gsub("\\$", "", data$extra_people))
 
 # Choose target variable
 num_target = 'price'
-cat_target = ''
+cat_target = 'host_response_time'
 
 
 #######################################################
@@ -35,10 +35,14 @@ ExpNumViz(data,target = NULL,type=1,nlim=25,fname = 'density_plot',Page = c(2,2)
 ExpNumViz(data,target = NULL,type=1,nlim=25,fname = 'all_scatter_plot',Page = c(2,2), scatter = TRUE)
 
 # SUMMARY OF CATEGORICAL VARIABLES
+ExpCTable(data,Target=NULL,margin=1,clim=10,nlim=5,round=2,bin=NULL,per=T) # Frecuency tables for categorical variables
+ExpCatStat(data,Target=cat_target,result = "Stat",clim=10,nlim=5,Pclass="Yes") # Summary statistics of categorical variables
+ExpCatStat(data,Target=cat_target,result = "IV",clim=10,nlim=5,Pclass="Yes") # Inforamtion value and Odds value
 
-
-
-
+# GRAPHICAL REPRESENTATION OF ALL CATEGORICAL VARIABLES
+ExpCatViz(data,target=cat_target,fname='column_charts',clim=10,col=NULL,margin=2,Page = c(2,1),sample=2) # Column chart
+ExpCatViz(data,target=cat_target,fname='stacked_bar_graph',clim=10,col=NULL,margin=2,Page = c(2,1),sample=2) # Stacked bar graph
+ExpCatStat(data,Target=cat_target,result="Stat",Pclass="Yes",plot=TRUE,top=20,Round=2) # Variable importance graph using information values
 
 
 #######################################################
@@ -51,19 +55,18 @@ ExpCustomStat(data=data)
 
 
 # Still don't know what they do
-ExpCatStat(data, Target = target) # weight of evidence, information value and summary statistics
 ExpInfoValue(data, Target=target) # Information value
 
 
 # DESCRIPTIVE STATISTICS
-ExpCTable(data) # Frecuency tables for categorical variables
+
 ExpKurtosis(data, type='moment') # Measures of Shape - Kustosis
 ExpKurtosis(data, type='excess') # Measures of Shape - Kustosis
 
 
 
 # DATA VISUALIZATION
-ExpCatViz(data, fname = 'categorical_bar_plots') # Create bar plots for each categorical variable
+
 ExpOutQQ(data, fname='quantile_plots') # Quantile plots
 # ExpParcoord(data) DON' USE UNDER ANY CIRCUNSTANCE --> REPORT
 
@@ -72,3 +75,6 @@ ExpOutliers(data, varlist = c('price'), method='boxplot')
 
 
 # CUSTOM TABLE
+
+# CREATE HTML EDA REPORT
+ExpReport(data,Target=NULL,label=NULL,op_file="report.html",op_dir=getwd(),sc=2,sn=2,Rc="Yes")
