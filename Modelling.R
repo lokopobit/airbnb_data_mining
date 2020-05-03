@@ -245,6 +245,248 @@ plot(KRLSFit1)
 # PLS: PRINCIPAL COMPONENT ANALYSIS
 # https://cran.r-project.org/web/packages/pls/
 
+PLS.Grid <-  expand.grid(ncomp = c(2,4,6,16))
+
+PLS.Fit1 <- train(fmla, data = dataTrain, 
+                  method = "pcr", 
+                  trControl = fitControl,
+                  tuneGrid = PLS.Grid)
+PLS.Fit1
+plot(PLS.Fit1)
+
+
+# PPR: PROJECTION PURSUIT REGRESSION
+# BUILT IN
+
+PPR.Grid <-  expand.grid(nterms = c(2,4,6,16))
+
+PPR.Fit1 <- train(fmla, data = dataTrain, 
+                  method = "ppr", 
+                  trControl = fitControl,
+                  tuneGrid = PPR.Grid)
+PPR.Fit1
+plot(PPR.Fit1)
+
+
+# QRF: QUANTILE RANDOM FOREST
+# https://cran.r-project.org/web/packages/quantregForest/
+
+QRF.Grid <-  expand.grid(mtry = 2)
+
+QRF.Fit1 <- train(fmla, data = dataTrain, 
+                  method = "qrf", 
+                  trControl = fitControl,
+                  tuneGrid = QRF.Grid)
+QRF.Fit1
+plot(QRF.Fit1)
+
+
+# RQLASSO: QUANTILE REGRESSION WITH LASSO PENALTY
+# https://cran.r-project.org/web/packages/rqPen/
+
+RQLASSO.Grid <-  expand.grid(lambda = seq(0.1,0.9,0.1))
+
+RQLASSO.Fit1 <- train(fmla, data = dataTrain, 
+                  method = "rqlasso", 
+                  trControl = fitControl,
+                  tuneGrid = RQLASSO.Grid)
+RQLASSO.Fit1
+plot(RQLASSO.Fit1)
+
+
+# KRLSRADIAL: RADIAL BASIS FUNCTION KERNEL REGULARIZED LEAST SQUARES
+# https://cran.r-project.org/web/packages/KRLS/
+# https://cran.r-project.org/web/packages/kernlab/ 
+
+KRLSRADIAL.Grid <-  expand.grid(lambda = seq(0.1,0.9,0.1), sigma = 0.1)
+
+KRLSRADIAL.Fit1 <- train(fmla, data = dataTrain, 
+                      method = "krlsRadial", 
+                      trControl = fitControl,
+                      tuneGrid = KRLSRADIAL.Grid)
+KRLSRADIAL.Fit1
+plot(KRLSRADIAL.Fit1)
+
+
+# RELAXO: RELAXED LASSO
+# https://cran.r-project.org/web/packages/relaxo/
+# https://cran.r-project.org/web/packages/plyr/
+
+RELAXO.Grid <-  expand.grid(lambda = seq(0.1,0.9,0.1), phi = 0.99)
+
+RELAXO.Fit1 <- train(fmla, data = dataTrain, 
+                         method = "relaxo", 
+                         trControl = fitControl,
+                         tuneGrid = RELAXO.Grid)
+RELAXO.Fit1
+plot(RELAXO.Fit1)
+
+
+# RVMLINEAR: RELEVANCE VECTOR MACHINES WITH LINEAR KERNEL
+# RVMPOLY: RELEVANCE VECTOR MACHINES WITH POLYNOMIAL KERNEL
+# RVMRADIAL: RELEVANCE VECTOR MACHINES WITH RADIAL BASIS FUNCTION KERNEL
+# https://cran.r-project.org/web/packages/kernlab/ 
+
+RVMLINEAR.Fit1 <- train(fmla, data = dataTrain, 
+                     method = "rvmLinear", 
+                     trControl = fitControl)
+RVMLINEAR.Fit1
+plot(RVMLINEAR.Fit1)
+
+
+RVMPOLY.Grid <-  expand.grid(scale = seq(0.1,0.9,0.1), degree = 3)
+
+RVMPOLY.Fit1 <- train(fmla, data = dataTrain, 
+                     method = "rvmPoly", 
+                     trControl = fitControl,
+                     tuneGrid = RVMPOLY.Grid)
+RVMPOLY.Fit1
+plot(RVMPOLY.Fit1)
+
+
+RVMRADIAL.Grid <-  expand.grid(SIGMA = seq(0.1,0.9,0.1))
+
+RVMRADIAL.Fit1 <- train(fmla, data = dataTrain, 
+                      method = "rvmRadial", 
+                      trControl = fitControl,
+                      tuneGrid = RVMRADIAL.Grid)
+RVMRADIAL.Fit1
+plot(RVMRADIAL.Fit1)
+
+
+# RIDGE: RISGE REGRESSION
+# https://cran.r-project.org/web/packages/elasticnet/
+
+RIDGE.Grid <-  expand.grid(lambda = seq(0.01,0.9,0.01))
+
+RIDGE.Fit1 <- train(fmla, data = dataTrain, 
+                        method = "ridge", 
+                        trControl = fitControl,
+                        tuneGrid = RIDGE.Grid)
+RIDGE.Fit1
+plot(RIDGE.Fit1)
+
+
+# FOBA: RIDGE REGRESSION WITH VARIABLE SELECTION
+# https://cran.r-project.org/web/packages/foba/
+
+FOBA.Grid <-  expand.grid(k = 1, lambda = seq(0.1,0.9,0.1))
+
+FOBA.Fit1 <- train(fmla, data = dataTrain, 
+                    method = "foba", 
+                    trControl = fitControl,
+                    tuneGrid = FOBA.Grid)
+FOBA.Fit1
+plot(FOBA.Fit1)
+
+
+# RLM: ROBUST LINEAR MODEL
+# https://cran.r-project.org/web/packages/MASS/
+
+RLM.Grid <-  expand.grid(intercept = TRUE, psi = seq(0.1,0.9,0.1))
+
+RLM.Fit1 <- train(fmla, data = dataTrain, 
+                   method = "rlm", 
+                   trControl = fitControl,
+                   tuneGrid = RLM.Grid)
+RLM.Fit1
+plot(RLM.Fit1)
+
+
+# SPIKESLAB: SPIKE AND SLAB REGRESSION
+# https://cran.r-project.org/web/packages/spikeslab/
+# https://cran.r-project.org/web/packages/plyr/
+
+SPIKESLAB.Grid <-  expand.grid(vars = 1:10)
+
+SPIKESLAB.Fit1 <- train(fmla, data = dataTrain, 
+                  method = "spikeslab", 
+                  trControl = fitControl,
+                  tuneGrid = SPIKESLAB.Grid)
+SPIKESLAB.Fit1
+plot(SPIKESLAB.Fit1)
+
+
+# SUPERPC: SUPERVISED PRINCIPAL COMPONENT ANALYSIS
+# https://cran.r-project.org/web/packages/superpc/
+
+SUPERPC.Grid <-  expand.grid(threshold = seq(0.1,0.5,0.1), n.components = 2:4)
+
+SUPERPC.Fit1 <- train(fmla, data = dataTrain, 
+                        method = "superpc", 
+                        trControl = fitControl,
+                        tuneGrid = SUPERPC.Grid)
+SUPERPC.Fit1
+plot(SUPERPC.Fit1)
+
+
+# BLASSO: THE BAYESIAN LASSO
+# https://cran.r-project.org/web/packages/monomvn/
+
+BLASSO.Grid <-  expand.grid(sparsity = 0.1)
+
+BLASSO.Fit1 <- train(fmla, data = dataTrain, 
+                      method = "blasso", 
+                      trControl = fitControl,
+                      tuneGrid = BLASSO.Grid)
+BLASSO.Fit1
+plot(BLASSO.Fit1)
+
+
+# LASSO: THE LASSO
+# https://cran.r-project.org/web/packages/elasticnet/
+
+LASSO.Grid <-  expand.grid(fraction = seq(0.1,0.9,0.1))
+
+LASSO.Fit1 <- train(fmla, data = dataTrain, 
+                     method = "lasso", 
+                     trControl = fitControl,
+                     tuneGrid = LASSO.Grid)
+LASSO.Fit1
+plot(LASSO.Fit1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -282,6 +524,9 @@ plot(frbsFit1)
 # Include FUZZY RULES VIA THRIFT
 # Include GENETIC LATERAL TUNING AND RULES SELECTION OF LINGUISTIC FUZZY SYSTEMS 
 # Include HYBRID NEURAL FUZZY INFERENCE SYSTEM
+# Include FSHGD: SIMPLIFIED TSK FUZZY RULES
+# Include SUBSTRACTIVE CLUSTERING AND FUZZY C-MEANS RULES
+# Include WANG AND MENDEL FUZZY RULES
 
 # BRNN: BAYESIAN REGULARIZED NEURAL NETWORKS
 # https://cran.r-project.org/web/packages/brnn/
@@ -298,3 +543,6 @@ frbsFit1 <- train(fmla, data = dataTrain,
 frsbFit1
 plot(frbsFit1) 
 
+
+# QRNN: QUANTILE REGRESSION NEURAL NETWORK
+# https://cran.r-project.org/web/packages/qrnn/
