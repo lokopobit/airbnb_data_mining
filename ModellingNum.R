@@ -6,10 +6,6 @@
 library(caret)
 library(doParallel)
 
-# Use parallel computing
-cl <- makePSOCKcluster(3)
-registerDoParallel(cl) # stopCluster(cl)
-
 # Graphics sep up
 trellis.par.set(caretTheme())
 
@@ -33,75 +29,110 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 ####################### MODELS WITHOUT HYPERPARAMETERS #####################
 ############################################################################
 
-# MONOMVN: BAYESIAN RIDGE REGRESSION
-# https://cran.r-project.org/web/packages/monomvn/
+target.num.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow = FALSE) {
+  # BRIDGE: BAYESIAN RIDGE REGRESSION: https://cran.r-project.org/web/packages/monomvn/
+  # BLASSOAVERAGED: BAYESIAN RIDGE REGRESSION (MODEL AVERAGED): https://cran.r-project.org/web/packages/monomvn/
+  # LMSTEPAIC: LINEAR REGRESSION WITH STEPWISE SELECTION: https://cran.r-project.org/web/packages/MASS/  
+  # NNLS: NON-NEGATIVE LEAST SQUARES: https://cran.r-project.org/web/packages/nnls/
+  fast.models <- c("bridge", "blassoAveraged", "lmStepAIC", "nnls")
+  
+  # RVMLINEAR: RELEVANCE VECTOR MACHINES WITH LINEAR KERNEL: https://cran.r-project.org/web/packages/kernlab/ 
+  slow.models <- c("rvmLinear")
+ 
+  if (parallel) {
+    cl <- makePSOCKcluster(3)
+    registerDoParallel(cl)
+  }
+  
+  models.Results <- list()
+  for (model in fast.models) {
+    model.Fit <- train(fmla, data = dataTrain, 
+                          method = model, 
+                          trControl = fitControl)
+    models.Results <- rbind(models.Results, model.Fit$results)
+  }
+  
+  if (slow) {
+    for (model in slow.models) {
+      model.Fit <- train(fmla, data = dataTrain, 
+                         method = model, 
+                         trControl = fitControl)
+      models.Results <- rbind(models.Results, model.Fit$results)
+    }
+  }
+  
+  if (parallel) {
+    stopCluster(cl)
+    registerDoSEQ()
+  }
+  
+  return(models.Results)
+}
 
-MONOMVN.Fit1 <- train(fmla, data = dataTrain, 
-                  method = "bridge", 
-                  trControl = fitControl)
-MONOMVN.Fit1
-
-MONOMVN.Fit2 <- train(fmla, data = dataTrain, 
-                     method = "blassoAveraged", 
-                     trControl = fitControl)
-MONOMVN.Fit2
-
-
-# LMSTEPAIC: LINEAR REGRESSION WITH STEPWISE SELECTION
-# https://cran.r-project.org/web/packages/MASS/
-
-LMSTEPAIC.Fit1 <- train(fmla, data = dataTrain, 
-                       method = "lmStepAIC", 
-                       trControl = fitControl)
-LMSTEPAIC.Fit1
-
-
-# NNLS: NON-NEGATIVE LEAST SQUARES 
-# https://cran.r-project.org/web/packages/nnls/
-
-NNLSFit1 <- train(fmla, data = dataTrain, 
-                  method = "nnls", 
-                  trControl = fitControl)
-NNLSFit1
-
-
-# RVMLINEAR: RELEVANCE VECTOR MACHINES WITH LINEAR KERNEL
-# https://cran.r-project.org/web/packages/kernlab/ 
-
-RVMLINEAR.Fit1 <- train(fmla, data = dataTrain, 
-                        method = "rvmLinear", 
-                        trControl = fitControl)
-RVMLINEAR.Fit1
-plot(RVMLINEAR.Fit1)
 
 ############################################################################
 ####################### MODELS WITH HYPERPARAMETERS ########################
 ############################################################################
 
-# LM: LINEAR REGRESSION
-# BUILT IN
+target.num.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow = FALSE) {
+  # LM: LINEAR REGRESSION: BUILT IN
+  # CUBIST: RULE AND INSTANCE BASED REGRESSION MODELLING: https://cran.r-project.org/web/packages/Cubist/
+  fast.models <- c("lm", "cubist")
+  LM.Grid <-  expand.grid(intercept = TRUE)
+  
+  slow.models <- c()
+  
+  if (parallel) {
+    cl <- makePSOCKcluster(3)
+    registerDoParallel(cl)
+  }
+  
+  models.Results <- list()
+  for (model in fast.models) {
+    model.Fit <- train(fmla, data = dataTrain, 
+                       method = model, 
+                       trControl = fitControl)
+    models.Results <- rbind(models.Results, model.Fit$results)
+    # plot(model.Fit)
+  }
+  
+  if (slow) {
+    for (model in slow.models) {
+      model.Fit <- train(fmla, data = dataTrain, 
+                         method = model, 
+                         trControl = fitControl)
+      models.Results <- rbind(models.Results, model.Fit$results)
+      # plot(model.Fit)
+    }
+  }
+  
+  if (parallel) {
+    stopCluster(cl)
+    registerDoSEQ()
+  }
+  
+  return(models.Results)
+}
 
-LMGrid <-  expand.grid(intercept = TRUE)
-
-LMFit1 <- train(fmla, data = dataTrain, 
-                method = "lm", 
-                trControl = fitControl,
-                tuneGrid = LMGrid)
-LMFit1
 
 
-# CUBIST: RULE AND INSTANCE BASED REGRESSION MODELLING
-# https://cran.r-project.org/web/packages/Cubist/
+
+
+
+
+
+
+
 
 CUBISTGrid <-  expand.grid(committees = c(1, 5, 9), neighbors = 1:9)
 
 CUBISTFit1 <- train(fmla, data = dataTrain, 
-                 method = "cubist", 
+                 method = , 
                  trControl = fitControl,
                  verbose = FALSE,
                  tuneGrid = CUBISTGrid)
 CUBISTFit1
-plot(CUBISTFit1) 
+ 
 
 
 # ELASTICNET: ELASTIC-NET FOR SPARSE ESTIMATION AND SPARSE PCA
@@ -343,7 +374,7 @@ RVMPOLY.Fit1
 plot(RVMPOLY.Fit1)
 
 
-RVMRADIAL.Grid <-  expand.grid(SIGMA = seq(0.1,0.9,0.1))
+RVMRADIAL.Grid <-  expand.grid(sigma = seq(0.1,0.9,0.1))
 
 RVMRADIAL.Fit1 <- train(fmla, data = dataTrain, 
                       method = "rvmRadial", 
