@@ -4,6 +4,11 @@
 
 # Load external libreries 
 library(caret)
+library(doParallel)
+
+# Use parallel computing
+cl <- makePSOCKcluster(3)
+registerDoParallel(cl) # stopCluster(cl)
 
 # Graphics sep up
 trellis.par.set(caretTheme())
@@ -24,19 +29,65 @@ dataTest <- clean_data[-trainIndex,]
 # RESAMPLING: 10-fold CV repeated ten times
 fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 
+############################################################################
+####################### MODELS WITHOUT HYPERPARAMETERS #####################
+############################################################################
 
 # MONOMVN: BAYESIAN RIDGE REGRESSION
 # https://cran.r-project.org/web/packages/monomvn/
 
-MONOMVNFit1 <- train(fmla, data = dataTrain, 
+MONOMVN.Fit1 <- train(fmla, data = dataTrain, 
                   method = "bridge", 
                   trControl = fitControl)
-MONOMVNFit1
+MONOMVN.Fit1
 
-MONOMVNFit2 <- train(fmla, data = dataTrain, 
+MONOMVN.Fit2 <- train(fmla, data = dataTrain, 
                      method = "blassoAveraged", 
                      trControl = fitControl)
-MONOMVNFit2
+MONOMVN.Fit2
+
+
+# LMSTEPAIC: LINEAR REGRESSION WITH STEPWISE SELECTION
+# https://cran.r-project.org/web/packages/MASS/
+
+LMSTEPAIC.Fit1 <- train(fmla, data = dataTrain, 
+                       method = "lmStepAIC", 
+                       trControl = fitControl)
+LMSTEPAIC.Fit1
+
+
+# NNLS: NON-NEGATIVE LEAST SQUARES 
+# https://cran.r-project.org/web/packages/nnls/
+
+NNLSFit1 <- train(fmla, data = dataTrain, 
+                  method = "nnls", 
+                  trControl = fitControl)
+NNLSFit1
+
+
+# RVMLINEAR: RELEVANCE VECTOR MACHINES WITH LINEAR KERNEL
+# https://cran.r-project.org/web/packages/kernlab/ 
+
+RVMLINEAR.Fit1 <- train(fmla, data = dataTrain, 
+                        method = "rvmLinear", 
+                        trControl = fitControl)
+RVMLINEAR.Fit1
+plot(RVMLINEAR.Fit1)
+
+############################################################################
+####################### MODELS WITH HYPERPARAMETERS ########################
+############################################################################
+
+# LM: LINEAR REGRESSION
+# BUILT IN
+
+LMGrid <-  expand.grid(intercept = TRUE)
+
+LMFit1 <- train(fmla, data = dataTrain, 
+                method = "lm", 
+                trControl = fitControl,
+                tuneGrid = LMGrid)
+LMFit1
 
 
 # CUBIST: RULE AND INSTANCE BASED REGRESSION MODELLING
@@ -103,17 +154,6 @@ LARSFit2
 plot(LARSFit2)
 
 
-# LM: LINEAR REGRESSION
-# BUILT IN
-
-LMGrid <-  expand.grid(intercept = TRUE)
-
-LMFit1 <- train(fmla, data = dataTrain, 
-                     method = "lm", 
-                     trControl = fitControl,
-                     tuneGrid = LMGrid)
-LMFit1
-
 
 # LEAPBACKWARD: LINEAR REGRESSION WITH BACKWARDS SELECTION
 # LEAPFORWARD: LINEAR REGRESION WITH FORWARD SELECTION
@@ -144,14 +184,6 @@ LEAPSFit1 <- train(fmla, data = dataTrain,
                    tuneGrid = LEAPSGrid)
 LEAPSFit1
 
-
-# LMSTEPAIC: LINEAR REGRESSION WITH STEPWISE SELECTION
-# https://cran.r-project.org/web/packages/MASS/
-
-LMSTEPAICFit1 <- train(fmla, data = dataTrain, 
-                   method = "lmStepAIC", 
-                   trControl = fitControl)
-LMSTEPAICFit1
 
 
 # NEGATIVE BINOMIAL GENERILIZED MODEL --- NEEDS TO BE CHECKED
@@ -189,15 +221,6 @@ RQNCFit1 <- train(fmla, data = dataTrain,
                      trControl = fitControl,
                      tuneGrid = RQNCGrid)
 RQNCFit1
-
-
-# NNLS: NON-NEGATIVE LEAST SQUARES 
-# https://cran.r-project.org/web/packages/nnls/
-
-NNLSFit1 <- train(fmla, data = dataTrain, 
-                  method = "nnls", 
-                  trControl = fitControl)
-NNLSFit1
 
 
 # PENALIZED: PENALIZED LINEAR REGRESSION
@@ -306,17 +329,9 @@ RELAXO.Fit1
 plot(RELAXO.Fit1)
 
 
-# RVMLINEAR: RELEVANCE VECTOR MACHINES WITH LINEAR KERNEL
 # RVMPOLY: RELEVANCE VECTOR MACHINES WITH POLYNOMIAL KERNEL
 # RVMRADIAL: RELEVANCE VECTOR MACHINES WITH RADIAL BASIS FUNCTION KERNEL
 # https://cran.r-project.org/web/packages/kernlab/ 
-
-RVMLINEAR.Fit1 <- train(fmla, data = dataTrain, 
-                     method = "rvmLinear", 
-                     trControl = fitControl)
-RVMLINEAR.Fit1
-plot(RVMLINEAR.Fit1)
-
 
 RVMPOLY.Grid <-  expand.grid(scale = seq(0.1,0.9,0.1), degree = 3)
 
@@ -428,6 +443,18 @@ LASSO.Fit1 <- train(fmla, data = dataTrain,
                      tuneGrid = LASSO.Grid)
 LASSO.Fit1
 plot(LASSO.Fit1)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
