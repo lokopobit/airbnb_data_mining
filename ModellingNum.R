@@ -11,7 +11,6 @@ trellis.par.set(caretTheme())
 
 # DATA SPLITTING
 num_target <- 'price'
-cat_target <- 'host_response_time'
 fmla <- fmla <- as.formula(paste(num_target, '~.'))
 
 dataset_name <- deparse(substitute(clean_data))
@@ -144,7 +143,7 @@ target.num.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow 
                        tuneGrid = model.Grid)
     #models.Results <- rbind(models.Results, model.Fit$results)
     #plot(model.Fit)
-    model.Fit$results
+    print(model.Fit$results)
   }
   
   if (slow) {

@@ -1,0 +1,2 @@
+
+# VGLMADJCAT: ADJACENT CATEGORIES PROBABILITY MODEL FOR ORDINAL DATA: https://cran.r-project.org/web/packages/VGAM/
