@@ -11,12 +11,12 @@ trellis.par.set(caretTheme())
 
 # Create binary variable
 a <- clean_data
-a$binPrice <- ifelse(clean_data$price <= mean(clean_data$price), 0, 1)
-a$binPrice[a$beds > 1] <- 2
+a$binPrice <- ifelse(clean_data$price <= mean(clean_data$price), 'cheap', 'expensive')
+a$binPrice[a$beds > 1] <- 'medium'
 a$binPrice <- factor(a$binPrice)
 a$price <- NULL
 
-clean_data$binPrice <- factor(ifelse(clean_data$price <= mean(clean_data$price), 0, 1))
+clean_data$binPrice <- factor(ifelse(clean_data$price <= mean(clean_data$price), 'cheap', 'expensive'))
 
 clean_data$price <- NULL
 
@@ -40,9 +40,9 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 ############################################################################
 
 
-model.Grid <-  expand.grid(cp = seq(100,500,100), split = c('abs', 'quad'), prune = c('mr', 'mc'))
+model.Grid <-  expand.grid(lambda = 0.1, qval = 1, degree = 1, scale = 1)
 model.Fit <- train(fmla, data = a, #dataTrain
-                   method = "chaid", 
+                   method = "dwdPoly", 
                    trControl = fitControl,
                    tuneGrid = model.Grid)
 
@@ -133,10 +133,15 @@ target.catMult.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE,
 ###################### BINARY CLASSIFICATION ONLY ##########################
 target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow = FALSE) {
   # ada: BOOSTED CLASSIFICATION TREES: https://cran.r-project.org/web/packages/ada/ : https://cran.r-project.org/web/packages/plyr/
-
-  fast.models <- c("ada")
+  # C5.0Cost: COST-SENSITIVE C5.0: https://cran.r-project.org/web/packages/C50/ : https://cran.r-project.org/web/packages/plyr/
+  # rpartCost: COST-SENSITIVE CART: https://cran.r-project.org/web/packages/rpart/ : https://cran.r-project.org/web/packages/plyr/
+  # deepboost: DEEPBOOST: https://cran.r-project.org/web/packages/deepboost/
+  
+  fast.models <- c("ada", "C5.0Cost", "rpartCost", "deepboost")
   ada.Grid <-  expand.grid(iter = 100, maxdepth = c(4, 6), nu = 0.5)
-
+  C5.0Cost.Grid <-  expand.grid(trials = seq(10,30,10), model = c("tree", "rules"), winnow = c(TRUE, FALSE), cost = 1:3)
+  rpartCost.Grid <-  expand.grid(cp = 1:3, Cost = 1:3)
+  deepboost.Grid <-  expand.grid(num_iter = seq(10,30,20), tree_depth = 5:6, beta = seq(0.2,0.3,0.1), lambda = 0.3, loss_type = "l")
   
   # ADABOOST: ADABOOST CLASSIFICATION TREES: https://cran.r-project.org/web/packages/fastAdaboost/
   
@@ -190,6 +195,7 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   # J48: C4.5-LIKE TREES: https://cran.r-project.org/web/packages/RWeka/
   # C5.0: C5.0: https://cran.r-project.org/web/packages/C50/
   
+  
   fast.models <- c("AdaBag", "AdaBoost.M1", "bagFDAGCV", "LogitBoost", "J48", "C5.0")
   AdaBag.Grid <-  expand.grid(mfinal = c(3, 6), maxdepth = c(5, 10))
   AdaBoost.M1.Grid <-  expand.grid(mfinal = c(3, 6), maxdepth = c(5, 10), coeflearn = "Zhu")
@@ -200,9 +206,11 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   
   
   # bagFDA: BAGGED FLEXIBLE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/earth/ : https://cran.r-project.org/web/packages/mda/
+  # dwdPoly: DISTANCE WEIGHTED DISCRIMINATION WITH POLYNOMIAL KERNEL: https://cran.r-project.org/web/packages/kerndwd/
   
-  slow.models <- c("bagFDA")
+  slow.models <- c("bagFDA", "dwdPoly")
   bagFDA.Grid <-  expand.grid(degree = c(1, 2), nprune = c (1,2))
+  dwdPoly.Grid <-  expand.grid(lambda = 0.1, qval = 1, degree = 1, scale = 1)
   
   if (parallel) {
     cl <- makePSOCKcluster(3)
