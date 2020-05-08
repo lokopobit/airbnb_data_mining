@@ -40,9 +40,9 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 ############################################################################
 
 
-model.Grid <-  expand.grid(lambda = 0.1, qval = 1, degree = 1, scale = 1)
-model.Fit <- train(fmla, data = a, #dataTrain
-                   method = "dwdPoly", 
+model.Grid <-  expand.grid(q = 2:4)
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "RFlda", 
                    trControl = fitControl,
                    tuneGrid = model.Grid)
 
@@ -136,12 +136,14 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, sl
   # C5.0Cost: COST-SENSITIVE C5.0: https://cran.r-project.org/web/packages/C50/ : https://cran.r-project.org/web/packages/plyr/
   # rpartCost: COST-SENSITIVE CART: https://cran.r-project.org/web/packages/rpart/ : https://cran.r-project.org/web/packages/plyr/
   # deepboost: DEEPBOOST: https://cran.r-project.org/web/packages/deepboost/
+  # RFlda: FACTOR-BASED LINEAR DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/HiDimDA/
   
-  fast.models <- c("ada", "C5.0Cost", "rpartCost", "deepboost")
+  fast.models <- c("ada", "C5.0Cost", "rpartCost", "deepboost", "RFlda")
   ada.Grid <-  expand.grid(iter = 100, maxdepth = c(4, 6), nu = 0.5)
   C5.0Cost.Grid <-  expand.grid(trials = seq(10,30,10), model = c("tree", "rules"), winnow = c(TRUE, FALSE), cost = 1:3)
   rpartCost.Grid <-  expand.grid(cp = 1:3, Cost = 1:3)
   deepboost.Grid <-  expand.grid(num_iter = seq(10,30,20), tree_depth = 5:6, beta = seq(0.2,0.3,0.1), lambda = 0.3, loss_type = "l")
+  RFlda.Grid <-  expand.grid(q = 2:4)
   
   # ADABOOST: ADABOOST CLASSIFICATION TREES: https://cran.r-project.org/web/packages/fastAdaboost/
   
@@ -207,10 +209,12 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   
   # bagFDA: BAGGED FLEXIBLE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/earth/ : https://cran.r-project.org/web/packages/mda/
   # dwdPoly: DISTANCE WEIGHTED DISCRIMINATION WITH POLYNOMIAL KERNEL: https://cran.r-project.org/web/packages/kerndwd/
+  # dwdRadial: DISTANCE WEIGHTED DISCRIMINATION WITH RADIAL BASIS FUNCTION KERNEL: https://cran.r-project.org/web/packages/kerndwd/ : https://cran.r-project.org/web/packages/kernlab/ 
   
-  slow.models <- c("bagFDA", "dwdPoly")
+  slow.models <- c("bagFDA", "dwdPoly", "dwdRadial")
   bagFDA.Grid <-  expand.grid(degree = c(1, 2), nprune = c (1,2))
   dwdPoly.Grid <-  expand.grid(lambda = 0.1, qval = 1, degree = 1, scale = 1)
+  dwdRadial.Grid <-  expand.grid(lambda = 0.1, qval = 1, sigma = 4)
   
   if (parallel) {
     cl <- makePSOCKcluster(3)
