@@ -26,3 +26,18 @@ plot(frbsFit1)
 
 # QRNN: QUANTILE REGRESSION NEURAL NETWORK
 # https://cran.r-project.org/web/packages/qrnn/
+
+
+
+
+
+
+# mlpKerasDropoutCost:  MULTILAYER PERCEPTRON NETWORK WITH DROPOUT: https://cran.r-project.org/web/packages/keras/
+# mlpKerasDecayCost:  MULTILAYER PERCEPTRON NETWORK WITH WEIGHT DECAY: https://cran.r-project.org/web/packages/keras/
+
+
+
+
+
+
+

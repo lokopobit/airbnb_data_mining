@@ -39,20 +39,21 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 ####################### MODELS WITHOUT HYPERPARAMETERS #####################
 ############################################################################
 
-
-model.Grid <-  expand.grid(threshold = seq(0.1,0.9,0.3), c("AkjBkQkDk", "AkBkQkDk", "ABkQkDk"))
+model.Grid <-  expand.grid(usekernel = c(TRUE, FALSE), laplace = seq(0.1,0.9,0.2), adjust = seq(0.1,1,0.2))
 model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "hdda", 
+                   method = "naive_bayes", 
                    trControl = fitControl,
                    tuneGrid = model.Grid)
-getModelInfo('hdda')
+getModelInfo('naive_bayes')
 plot(model.Fit)
 model.Fit
 
 ###################### BINARY CLASSIFICATION ONLY ##########################
 target.catBin.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow = FALSE) {
-  # 
-  fast.models <- c("")
+  # lda: LINEAR DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/MASS/
+  # Mlda: MAXIMUN UNCERTAINTY LINEAR DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/HiDimDA/
+  
+  fast.models <- c("lda", "Mlda")
   
   # 
   slow.models <- c("")
@@ -141,9 +142,20 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, sl
   # protoclass: GREEDY PROPOTYPE SELECTION: https://cran.r-project.org/web/packages/protoclass/ : https://cran.r-project.org/web/packages/proxy/
   # hda: HETEROSCEDASTIC DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/hda/
   # hdda: HIGH DIMENSIONAL DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/HDclassif/
+  # svmLinearWeights2: L2 REGULARIZED LINEAR SUPPORT VECTOR MACHINES WITH CLASS WEIGHTS: https://cran.r-project.org/web/packages/LiblineaR/
+  # lvq: LEARNING VECTOR QUANTIZATION: https://cran.r-project.org/web/packages/class/
+  # lssvmRadial: LEAST SQUARES SUPPORT VECTOR MACHINE WITH RADIAL BASIS FUNCTION KERNEL: https://cran.r-project.org/web/packages/kernlab/
+  # lda2: LINEAR DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/MASS/
+  # stepLDA: LINEAR DISCRIMINANT ANALYSIS WITH STEPWISE FEATURE SELECTION: https://cran.r-project.org/web/packages/MASS/ : https://cran.r-project.org/web/packages/klaR/
+  # dwdLinear: LINEAR DISTANCE WEIGHTED DISCRIMINATION: https://cran.r-project.org/web/packages/kerndwd/
+  # svmLinearWeights: LINEAR SUPPORT VECTOR MACHINES WITH CLASS WEIGHTS: https://cran.r-project.org/web/packages/e1071/
+  # LMT: LOGISTIC MODEL TREES: https://cran.r-project.org/web/packages/RWeka/
+  # mda: MIXTURE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/mda/
+  # naive_bayes: NAIVE BAYES: https://cran.r-project.org/web/packages/naivebayes/
   
   fast.models <- c("ada", "C5.0Cost", "rpartCost", "deepboost", "RFlda", "fda", "protoclass", "hda",
-                   "hdda")
+                   "hdda", "svmLinearWeights2", "lvq", "lssvmRadial", "lda2", "stepLDA", "dwdLinear",
+                   "svmLinearWeights", "LMT", "mda", "naive_bayes")
   ada.Grid <-  expand.grid(iter = 100, maxdepth = c(4, 6), nu = 0.5)
   C5.0Cost.Grid <-  expand.grid(trials = seq(10,30,10), model = c("tree", "rules"), winnow = c(TRUE, FALSE), cost = 1:3)
   rpartCost.Grid <-  expand.grid(cp = 1:3, Cost = 1:3)
@@ -153,6 +165,16 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, sl
   protoclass.Grid <-  expand.grid(eps = 50, Minkowski = 1)
   hda.Grid <-  expand.grid(gamma = seq(0.1,0.9,0.3), lambda = seq(0.2,0.9,0.3), newdim = c(2, 5, 10))
   hdda.Grid <-  expand.grid(threshold = seq(0.1,0.9,0.3), c("AkjBkQkDk", "AkBkQkDk", "ABkQkDk"))
+  svmLinearWeights2.Grid <-  expand.grid(cost = c(0.1,0.9), Loss = c("L1","L2"), weight = c(5,15))
+  lvq.Grid <-  expand.grid(size = c(1,2), k = c(5,15))
+  lssvmRadial.Grid <-  expand.grid(sigma = seq(1,10,6), tau = seq(0.1,0.9,0.6))
+  lda2.Grid <-  expand.grid(dimen = seq(1,30,3))
+  stepLDA.Grid <-  expand.grid(maxvar = C(10,30), direction = c("both", "forward", "backward"))
+  dwdLinear.Grid <-  expand.grid(lambda = seq(0.2,0.9,0.3), qval = c(5, 10))
+  svmLinearWeights.Grid <-  expand.grid(cost = seq(2,9,3), weight = c(2, 4))
+  LMT.Grid <-  expand.grid(iter = c(3, 10))
+  mda.Grid <-  expand.grid(subclasses = c(3, 10))
+  naive_bayes.Grid <-  expand.grid(usekernel = c(TRUE, FALSE), laplace = seq(0.1,0.9,0.2), adjust = seq(0.1,1,0.2))
   
   # ADABOOST: ADABOOST CLASSIFICATION TREES: https://cran.r-project.org/web/packages/fastAdaboost/
   
@@ -269,7 +291,34 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
 ############################################################################
 
 
+model.Grid <-  expand.grid(tau = 0.5)
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "lssvmLinear", 
+                   trControl = fitControl,
+                   tuneGrid = model.Grid)
+getModelInfo('lssvmLinear')
+plot(model.Fit)
+model.Fit
 
+
+model.Grid <-  expand.grid(degree = 1, scale = 1, tau = 0.5)
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "lssvmPoly", 
+                   trControl = fitControl,
+                   tuneGrid = model.Grid)
+getModelInfo('lssvmPoly')
+plot(model.Fit)
+model.Fit
+
+
+model.Grid <-  expand.grid(k = 3)
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "loclda", 
+                   trControl = fitControl,
+                   tuneGrid = model.Grid)
+getModelInfo('loclda')
+plot(model.Fit)
+model.Fit
 
 ##########################################################################
 ###################### SPECIAL MODELS ####################################
@@ -282,5 +331,16 @@ model.Fit <- train(fmla, data = dataTrain, #dataTrain
                    trControl = fitControl,
                    tuneGrid = model.Grid)
 
+plot(model.Fit)
+model.Fit
+
+
+# Data must be factor
+model.Grid <-  expand.grid(smooth = c(3, 10), prior = 0.1)
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "manb", 
+                   trControl = fitControl,
+                   tuneGrid = model.Grid)
+getModelInfo('manb')
 plot(model.Fit)
 model.Fit
