@@ -40,12 +40,12 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 ############################################################################
 
 
-model.Grid <-  expand.grid(q = 2:4)
+model.Grid <-  expand.grid(threshold = seq(0.1,0.9,0.3), c("AkjBkQkDk", "AkBkQkDk", "ABkQkDk"))
 model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "RFlda", 
+                   method = "hdda", 
                    trControl = fitControl,
                    tuneGrid = model.Grid)
-
+getModelInfo('hdda')
 plot(model.Fit)
 model.Fit
 
@@ -137,13 +137,22 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, sl
   # rpartCost: COST-SENSITIVE CART: https://cran.r-project.org/web/packages/rpart/ : https://cran.r-project.org/web/packages/plyr/
   # deepboost: DEEPBOOST: https://cran.r-project.org/web/packages/deepboost/
   # RFlda: FACTOR-BASED LINEAR DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/HiDimDA/
+  # fda: FLEXIBLE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/earth/ : https://cran.r-project.org/web/packages/mda/
+  # protoclass: GREEDY PROPOTYPE SELECTION: https://cran.r-project.org/web/packages/protoclass/ : https://cran.r-project.org/web/packages/proxy/
+  # hda: HETEROSCEDASTIC DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/hda/
+  # hdda: HIGH DIMENSIONAL DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/HDclassif/
   
-  fast.models <- c("ada", "C5.0Cost", "rpartCost", "deepboost", "RFlda")
+  fast.models <- c("ada", "C5.0Cost", "rpartCost", "deepboost", "RFlda", "fda", "protoclass", "hda",
+                   "hdda")
   ada.Grid <-  expand.grid(iter = 100, maxdepth = c(4, 6), nu = 0.5)
   C5.0Cost.Grid <-  expand.grid(trials = seq(10,30,10), model = c("tree", "rules"), winnow = c(TRUE, FALSE), cost = 1:3)
   rpartCost.Grid <-  expand.grid(cp = 1:3, Cost = 1:3)
   deepboost.Grid <-  expand.grid(num_iter = seq(10,30,20), tree_depth = 5:6, beta = seq(0.2,0.3,0.1), lambda = 0.3, loss_type = "l")
   RFlda.Grid <-  expand.grid(q = 2:4)
+  fda.Grid <-  expand.grid(degree = 2:4, nprune = c(5,10))
+  protoclass.Grid <-  expand.grid(eps = 50, Minkowski = 1)
+  hda.Grid <-  expand.grid(gamma = seq(0.1,0.9,0.3), lambda = seq(0.2,0.9,0.3), newdim = c(2, 5, 10))
+  hdda.Grid <-  expand.grid(threshold = seq(0.1,0.9,0.3), c("AkjBkQkDk", "AkBkQkDk", "ABkQkDk"))
   
   # ADABOOST: ADABOOST CLASSIFICATION TREES: https://cran.r-project.org/web/packages/fastAdaboost/
   
