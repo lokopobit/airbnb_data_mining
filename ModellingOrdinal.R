@@ -7,3 +7,5 @@ rpartScore.Grid <-  expand.grid(cp = seq(100,500,100), split = c('abs', 'quad'),
 model.Grid <-  expand.grid(parallel = c(TRUE, FALSE), link = c('probit'))
 
 # vglmCumulative: CUMULATIVE PROBABILITY MODEL FOR ORDINAL DATA: https://cran.r-project.org/web/packages/VGAM/
+
+# polr: ORDERED LOGISTIC OR PROBIT REGRESSION: https://cran.r-project.org/web/packages/MASS/

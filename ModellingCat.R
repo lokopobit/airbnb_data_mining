@@ -39,12 +39,12 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 ####################### MODELS WITHOUT HYPERPARAMETERS #####################
 ############################################################################
 
-model.Grid <-  expand.grid(usekernel = c(TRUE, FALSE), laplace = seq(0.1,0.9,0.2), adjust = seq(0.1,1,0.2))
+model.Grid <-  expand.grid(K = c(2,5))
 model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "naive_bayes", 
+                   method = "ownn", 
                    trControl = fitControl,
                    tuneGrid = model.Grid)
-getModelInfo('naive_bayes')
+getModelInfo('ownn')
 plot(model.Fit)
 model.Fit
 
@@ -152,10 +152,13 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, sl
   # LMT: LOGISTIC MODEL TREES: https://cran.r-project.org/web/packages/RWeka/
   # mda: MIXTURE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/mda/
   # naive_bayes: NAIVE BAYES: https://cran.r-project.org/web/packages/naivebayes/
+  # nb: NAIVE BAYES: https://cran.r-project.org/web/packages/klaR/
+  # pam: NEAREST SHRUNKEN CENTROIDS: https://cran.r-project.org/web/packages/pamr/
+  # ownn: OPTIMAL WEIGHTED NEAREST NEIGHBOR CLASSIFIER: https://cran.r-project.org/web/packages/snn/
   
   fast.models <- c("ada", "C5.0Cost", "rpartCost", "deepboost", "RFlda", "fda", "protoclass", "hda",
                    "hdda", "svmLinearWeights2", "lvq", "lssvmRadial", "lda2", "stepLDA", "dwdLinear",
-                   "svmLinearWeights", "LMT", "mda", "naive_bayes")
+                   "svmLinearWeights", "LMT", "mda", "naive_bayes", "nb", "pam", "ownn")
   ada.Grid <-  expand.grid(iter = 100, maxdepth = c(4, 6), nu = 0.5)
   C5.0Cost.Grid <-  expand.grid(trials = seq(10,30,10), model = c("tree", "rules"), winnow = c(TRUE, FALSE), cost = 1:3)
   rpartCost.Grid <-  expand.grid(cp = 1:3, Cost = 1:3)
@@ -175,11 +178,23 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, sl
   LMT.Grid <-  expand.grid(iter = c(3, 10))
   mda.Grid <-  expand.grid(subclasses = c(3, 10))
   naive_bayes.Grid <-  expand.grid(usekernel = c(TRUE, FALSE), laplace = seq(0.1,0.9,0.2), adjust = seq(0.1,1,0.2))
+  nb.Grid <-  expand.grid(usekernel = c(TRUE, FALSE), fL = seq(0.1,0.9,0.2), adjust = seq(0.1,1,0.2))
+  pam.Grid <-  expand.grid(threshold = seq(0.1,1,0.22))
+  ownn.Grid <-  expand.grid(K = c(2,5))
+  
   
   # ADABOOST: ADABOOST CLASSIFICATION TREES: https://cran.r-project.org/web/packages/fastAdaboost/
+  # ORFlog: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
+  # ORFpls: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
+  # ORFridge: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
+  # ORFsvm: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   
-  slow.models <- c("adaboost")
+  slow.models <- c("adaboost", "ORFlog", "ORFpls", "ORFridge", "ORFsvm")
   adaboost.Grid <-  expand.grid(nIter = seq(100, 150, 25), method = "Adaboost.M1")
+  ORFlog.Grid <-  expand.grid(mtry = 2)
+  ORFpls.Grid <-  expand.grid(mtry = 2)
+  ORFridge.Grid <-  expand.grid(mtry = 2)
+  ORFsvm.Grid <-  expand.grid(mtry = 2)
   
   if (parallel) {
     cl <- makePSOCKcluster(3)
@@ -342,5 +357,27 @@ model.Fit <- train(fmla, data = dataTrain, #dataTrain
                    trControl = fitControl,
                    tuneGrid = model.Grid)
 getModelInfo('manb')
+plot(model.Fit)
+model.Fit
+
+
+# Data must be factor
+model.Grid <-  expand.grid(smooth = seq(1,10,2))
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "nbDiscrete", 
+                   trControl = fitControl,
+                   tuneGrid = model.Grid)
+getModelInfo('nbDiscrete')
+plot(model.Fit)
+model.Fit
+
+
+# Data must be factor
+model.Grid <-  expand.grid(smooth = seq(1,10,2))
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "awnb", 
+                   trControl = fitControl,
+                   tuneGrid = model.Grid)
+getModelInfo('awnb')
 plot(model.Fit)
 model.Fit
