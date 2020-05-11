@@ -39,14 +39,27 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 ####################### MODELS WITHOUT HYPERPARAMETERS #####################
 ############################################################################
 
-model.Grid <-  expand.grid(K = c(2,5))
+model.Grid <-  expand.grid(decay = seq(0.1,0.9,0.3))
 model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "ownn", 
+                   method = "multinom", 
                    trControl = fitControl,
                    tuneGrid = model.Grid)
-getModelInfo('ownn')
+getModelInfo('multinom')
 plot(model.Fit)
 model.Fit
+
+
+model.Grid <-  expand.grid(maxvar = c(10,30), direction = c("both", "forward", "backward"))
+garbage <- capture.output(model.Fit <- train(fmla, data = a, #dataTrain
+                                             method = "stepLDA", 
+                                             trControl = fitControl,
+                                             tuneGrid = model.Grid))
+
+getModelInfo('stepLDA')
+plot(model.Fit)
+model.Fit
+
+
 
 ###################### BINARY CLASSIFICATION ONLY ##########################
 target.catBin.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow = FALSE) {
@@ -155,10 +168,14 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, sl
   # nb: NAIVE BAYES: https://cran.r-project.org/web/packages/klaR/
   # pam: NEAREST SHRUNKEN CENTROIDS: https://cran.r-project.org/web/packages/pamr/
   # ownn: OPTIMAL WEIGHTED NEAREST NEIGHBOR CLASSIFIER: https://cran.r-project.org/web/packages/snn/
+  # PRIM: PATIENT RULE INDUCTION METHOD: https://cran.r-project.org/web/packages/supervisedPRIM/
+  # pda: PENALIZED DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/mda/
+  # pda: PENALIZED DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/mda/
   
   fast.models <- c("ada", "C5.0Cost", "rpartCost", "deepboost", "RFlda", "fda", "protoclass", "hda",
                    "hdda", "svmLinearWeights2", "lvq", "lssvmRadial", "lda2", "stepLDA", "dwdLinear",
-                   "svmLinearWeights", "LMT", "mda", "naive_bayes", "nb", "pam", "ownn")
+                   "svmLinearWeights", "LMT", "mda", "naive_bayes", "nb", "pam", "ownn", "PRIM",
+                   "pda", "pda2")
   ada.Grid <-  expand.grid(iter = 100, maxdepth = c(4, 6), nu = 0.5)
   C5.0Cost.Grid <-  expand.grid(trials = seq(10,30,10), model = c("tree", "rules"), winnow = c(TRUE, FALSE), cost = 1:3)
   rpartCost.Grid <-  expand.grid(cp = 1:3, Cost = 1:3)
@@ -167,12 +184,12 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, sl
   fda.Grid <-  expand.grid(degree = 2:4, nprune = c(5,10))
   protoclass.Grid <-  expand.grid(eps = 50, Minkowski = 1)
   hda.Grid <-  expand.grid(gamma = seq(0.1,0.9,0.3), lambda = seq(0.2,0.9,0.3), newdim = c(2, 5, 10))
-  hdda.Grid <-  expand.grid(threshold = seq(0.1,0.9,0.3), c("AkjBkQkDk", "AkBkQkDk", "ABkQkDk"))
+  hdda.Grid <-  expand.grid(threshold = seq(0.1,0.9,0.3), model = c("AkjBkQkDk", "AkBkQkDk", "ABkQkDk"))
   svmLinearWeights2.Grid <-  expand.grid(cost = c(0.1,0.9), Loss = c("L1","L2"), weight = c(5,15))
   lvq.Grid <-  expand.grid(size = c(1,2), k = c(5,15))
   lssvmRadial.Grid <-  expand.grid(sigma = seq(1,10,6), tau = seq(0.1,0.9,0.6))
   lda2.Grid <-  expand.grid(dimen = seq(1,30,3))
-  stepLDA.Grid <-  expand.grid(maxvar = C(10,30), direction = c("both", "forward", "backward"))
+  stepLDA.Grid <-  expand.grid(maxvar = c(10,30), direction = c("both", "forward", "backward"))
   dwdLinear.Grid <-  expand.grid(lambda = seq(0.2,0.9,0.3), qval = c(5, 10))
   svmLinearWeights.Grid <-  expand.grid(cost = seq(2,9,3), weight = c(2, 4))
   LMT.Grid <-  expand.grid(iter = c(3, 10))
@@ -181,20 +198,24 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, sl
   nb.Grid <-  expand.grid(usekernel = c(TRUE, FALSE), fL = seq(0.1,0.9,0.2), adjust = seq(0.1,1,0.2))
   pam.Grid <-  expand.grid(threshold = seq(0.1,1,0.22))
   ownn.Grid <-  expand.grid(K = c(2,5))
-  
+  PRIM.Grid <-  expand.grid(peel.alpha = seq(0.01,0.25,0.09), paste.alpha = seq(0.01,0.25,0.2), mass.min = seq(0.01,0.25,0.2))
+  pda.Grid <-  expand.grid(lambda = seq(0.01,0.9,0.1))
+  pda2.Grid <-  expand.grid(df = seq(1,20,10))
   
   # ADABOOST: ADABOOST CLASSIFICATION TREES: https://cran.r-project.org/web/packages/fastAdaboost/
   # ORFlog: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # ORFpls: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # ORFridge: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # ORFsvm: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
+  # plr: PENALIZED LOGISTIC REGRESSION: https://cran.r-project.org/web/packages/stepPlr/
   
-  slow.models <- c("adaboost", "ORFlog", "ORFpls", "ORFridge", "ORFsvm")
+  slow.models <- c("adaboost", "ORFlog", "ORFpls", "ORFridge", "ORFsvm", "plr")
   adaboost.Grid <-  expand.grid(nIter = seq(100, 150, 25), method = "Adaboost.M1")
   ORFlog.Grid <-  expand.grid(mtry = 2)
   ORFpls.Grid <-  expand.grid(mtry = 2)
   ORFridge.Grid <-  expand.grid(mtry = 2)
   ORFsvm.Grid <-  expand.grid(mtry = 2)
+  plr.Grid <-  expand.grid(lambda = seq(0.1,0.9,0.3), cp = c("aic", "bic"))
   
   if (parallel) {
     cl <- makePSOCKcluster(3)
@@ -204,13 +225,28 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, sl
   models.Results <- list()
   for (model in fast.models) {
     model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-    model.Fit <- train(fmla, data = dataTrain, 
+    tryCatch({message(paste(rep('-', 20), collapse = ''))
+              message(paste('TRYING:', model, sep = ' '))
+              garbage <- capture.output(model.Fit <- train(fmla, data = dataTrain, 
                        method = model, 
                        trControl = fitControl,
-                       tuneGrid = model.Grid)
+                       tuneGrid = model.Grid))
+              print(model.Grid)
+              print(model.Fit$results)},
+             warning = function(cond) {
+               message('WARNING:')
+               message(cond)
+               return(NA)},
+              error = function(cond) {
+                message('ERROR:')
+                message(cond)
+                message(paste(rep('-', 20), collapse = ''))
+                return(NA)},
+             finally = {
+               message(paste(model, 'FINISHED',sep = ' '))})
     #models.Results <- rbind(models.Results, model.Fit$results)
     #plot(model.Fit)
-    print(model.Fit$results)
+    #print(model.Fit$results)
   }
   
   if (slow) {
@@ -242,16 +278,17 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   # LogitBoost: BOOSTED LOGISTIC REGRESSION: https://cran.r-project.org/web/packages/caTools/
   # J48: C4.5-LIKE TREES: https://cran.r-project.org/web/packages/RWeka/
   # C5.0: C5.0: https://cran.r-project.org/web/packages/C50/
+  # multinom: PENALIZED MULTINOMIAL REGRESSION: https://cran.r-project.org/web/packages/nnet/
   
   
-  fast.models <- c("AdaBag", "AdaBoost.M1", "bagFDAGCV", "LogitBoost", "J48", "C5.0")
+  fast.models <- c("AdaBag", "AdaBoost.M1", "bagFDAGCV", "LogitBoost", "J48", "C5.0", "multinom")
   AdaBag.Grid <-  expand.grid(mfinal = c(3, 6), maxdepth = c(5, 10))
   AdaBoost.M1.Grid <-  expand.grid(mfinal = c(3, 6), maxdepth = c(5, 10), coeflearn = "Zhu")
   bagFDAGCV.Grid <-  expand.grid(degree = c(1, 2))
   LogitBoost.Grid <-  expand.grid(nIter = seq(100,300,100))
   J48.Grid <-  expand.grid(C = seq(0.01,0.05,0.01), M = 5)
   C5.0.Grid <-  expand.grid(trials = seq(20,100,20), model = c('rules', 'tree'), winnow = c(TRUE,FALSE))
-  
+  multinom.Grid <-  expand.grid(decay = seq(0.1,0.9,0.3))
   
   # bagFDA: BAGGED FLEXIBLE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/earth/ : https://cran.r-project.org/web/packages/mda/
   # dwdPoly: DISTANCE WEIGHTED DISCRIMINATION WITH POLYNOMIAL KERNEL: https://cran.r-project.org/web/packages/kerndwd/
@@ -335,6 +372,17 @@ getModelInfo('loclda')
 plot(model.Fit)
 model.Fit
 
+
+# Error in .(lambda) : no se pudo encontrar la función "."
+model.Grid <-  expand.grid(lambda = seq(0.1,0.9,0.3), K = 2)
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "PenalizedLDA", 
+                   trControl = fitControl,
+                   tuneGrid = model.Grid)
+getModelInfo('PenalizedLDA')
+plot(model.Fit)
+model.Fit
+
 ##########################################################################
 ###################### SPECIAL MODELS ####################################
 ##########################################################################
@@ -381,3 +429,17 @@ model.Fit <- train(fmla, data = dataTrain, #dataTrain
 getModelInfo('awnb')
 plot(model.Fit)
 model.Fit
+
+
+
+
+
+
+# to multiclass: fda, protoclass, hda, hdda, lssvmRadial, lda2, stepLDA, dwdLinear, LMT, mda, naive_bayes, pam, ownn, pda, pda2.
+
+
+
+
+
+
+
