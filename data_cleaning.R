@@ -11,7 +11,7 @@ cleaning <- function(){
 # Read csv data
 # But first set de wording directory to source file location
 print('Loadind data')
-data <- read.csv('madrid-total-listings.csv')
+data <- read.csv('madrid-total-listings.csv', header=T, na.strings=c("","NA"))
 
 # Ad hoc Feature selection. Other methods should be considered
 # 75 features are removed
@@ -28,7 +28,7 @@ newdata <- subset(data, select = -c(name,id, listing_url, scrape_id, last_scrape
                                     calculated_host_listings_count,host_listings_count,
                                     host_total_listings_count,street,market,is_location_exact,
                                     neighbourhood,host_location,host_response_rate,zipcode,
-                                    amenities,host_neighbourhood,first_review,last_review,
+                                    amenities,first_review,last_review, host_neighbourhood,
                                     host_id,host_since,neighbourhood_cleansed,neighbourhood_group_cleansed,
                                     city,host_response_time,property_type, cancellation_policy,
                                     host_is_superhost, host_has_profile_pic, instant_bookable,

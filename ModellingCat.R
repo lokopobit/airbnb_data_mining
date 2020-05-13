@@ -39,13 +39,12 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 ####################### MODELS WITHOUT HYPERPARAMETERS #####################
 ############################################################################
 
-model.Grid <-  expand.grid(K = seq(2,10,1), model = c("EII", "VII", "EEI", "EVI", "VEI", "VVI"))
-model.Grid <-  expand.grid(K = 2, model = c("EII"))
-model.Fit <- train(fmla, data = a, #dataTrain
-                   method = "QdaCov", 
+model.Grid <-  expand.grid(k = 3, epsilon = 0.01, smooth = 1, final_smooth = 3, direction = c("forward", "backwards"))
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "nbSearch", 
                    trControl = fitControl,
                    tuneGrid = model.Grid)
-getModelInfo('rmda')
+getModelInfo('nbSearch')
 plot(model.Fit)
 model.Fit
 
@@ -95,8 +94,9 @@ target.catMult.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE,
   # qda: QUADRATIC DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/MASS/
   # Linda: ROBUST LINEAR DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/rrcov/
   # QdaCov: ROBUST QUADRATIC DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/rrcov/
+  # RSimca: ROBUST SIMCA: https://cran.r-project.org/web/packages/rrcovHD/
   
-  fast.models <- c("lda", "Mlda", "qda", "Linda", "QdaCov")
+  fast.models <- c("lda", "Mlda", "qda", "Linda", "QdaCov", "RSimca")
   
   # 
   slow.models <- c("")
@@ -138,6 +138,7 @@ target.catMult.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE,
 
 ###################### BINARY CLASSIFICATION ONLY ##########################
 target.catBin.Hyper <- function(fmla, dataTrain, fitControl, parallel = TRUE, slow = FALSE) {
+  # ADABOOST: ADABOOST CLASSIFICATION TREES: https://cran.r-project.org/web/packages/fastAdaboost/
   # ada: BOOSTED CLASSIFICATION TREES: https://cran.r-project.org/web/packages/ada/ : https://cran.r-project.org/web/packages/plyr/
   # C5.0Cost: COST-SENSITIVE C5.0: https://cran.r-project.org/web/packages/C50/ : https://cran.r-project.org/web/packages/plyr/
   # rpartCost: COST-SENSITIVE CART: https://cran.r-project.org/web/packages/rpart/ : https://cran.r-project.org/web/packages/plyr/
@@ -145,9 +146,12 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitControl, parallel = TRUE, sl
   # svmLinearWeights2: L2 REGULARIZED LINEAR SUPPORT VECTOR MACHINES WITH CLASS WEIGHTS: https://cran.r-project.org/web/packages/LiblineaR/
   # svmLinearWeights: LINEAR SUPPORT VECTOR MACHINES WITH CLASS WEIGHTS: https://cran.r-project.org/web/packages/e1071/
   # PRIM: PATIENT RULE INDUCTION METHOD: https://cran.r-project.org/web/packages/supervisedPRIM/
-
-  fast.models <- c("ada", "C5.0Cost", "rpartCost", "deepboost", "svmLinearWeights2","svmLinearWeights", 
-                   "PRIM")
+  # rotationForest: ROTATION FOREST: https://cran.r-project.org/web/packages/rotationForest/
+  # rotationForestCp: ROTATION FOREST: https://cran.r-project.org/web/packages/rotationForest/
+  
+  fast.models <- c("adaboost", "ada", "C5.0Cost", "rpartCost", "deepboost", "svmLinearWeights2",
+                   "svmLinearWeights", "PRIM", "rotationForest", "rotationForestCp")
+  adaboost.Grid <-  expand.grid(nIter = 100, method = c("Adaboost.M1", "Real adaboost"))
   ada.Grid <-  expand.grid(iter = 100, maxdepth = c(4, 6), nu = 0.5)
   C5.0Cost.Grid <-  expand.grid(trials = seq(10,30,10), model = c("tree", "rules"), winnow = c(TRUE, FALSE), cost = 1:3)
   rpartCost.Grid <-  expand.grid(cp = 1:3, Cost = 1:3)
@@ -155,16 +159,16 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitControl, parallel = TRUE, sl
   svmLinearWeights2.Grid <-  expand.grid(cost = c(0.1,0.9), Loss = c("L1","L2"), weight = c(5,15))
   svmLinearWeights.Grid <-  expand.grid(cost = seq(2,9,3), weight = c(2, 4))
   PRIM.Grid <-  expand.grid(peel.alpha = seq(0.01,0.25,0.09), paste.alpha = seq(0.01,0.25,0.2), mass.min = seq(0.01,0.25,0.2))
+  rotationForest.Grid <-  expand.grid(K = seq(1,15,5), L = seq(1,15,5))
+  rotationForestCp.Grid <-  expand.grid(K = seq(1,15,5), L = seq(1,15,5), cp = 0.1)
   
-  # ADABOOST: ADABOOST CLASSIFICATION TREES: https://cran.r-project.org/web/packages/fastAdaboost/
   # ORFlog: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # ORFpls: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # ORFridge: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # ORFsvm: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # plr: PENALIZED LOGISTIC REGRESSION: https://cran.r-project.org/web/packages/stepPlr/
   
-  slow.models <- c("adaboost", "ORFlog", "ORFpls", "ORFridge", "ORFsvm", "plr")
-  adaboost.Grid <-  expand.grid(nIter = seq(100, 150, 25), method = "Adaboost.M1")
+  slow.models <- c("ORFlog", "ORFpls", "ORFridge", "ORFsvm", "plr")
   ORFlog.Grid <-  expand.grid(mtry = 2)
   ORFpls.Grid <-  expand.grid(mtry = 2)
   ORFridge.Grid <-  expand.grid(mtry = 2)
@@ -188,10 +192,7 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitControl, parallel = TRUE, sl
   if (slow) {
     for (model in slow.models) {
       model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-      model.Fit <- train(fmla, data = dataTrain, 
-                         method = model, 
-                         trControl = fitControl,
-                         tuneGrid = model.Grid)
+      fitting(model.Grid, model, fmla, dataTrain, fitControl)
       
       #models.Results <- rbind(models.Results, model.Fit$results)
       # plot(model.Fit)
@@ -237,11 +238,15 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   # rFerns: RANDOM FERNS: https://cran.r-project.org/web/packages/rFerns/: 
   # rda: REGURALIZED DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/klaR/
   # regLogistic: REGULARIZED LOGISTIC REGRESSION: https://cran.r-project.org/web/packages/LiblineaR/
+  # rocc: ROC-BASED CLASSIFIER: https://cran.r-project.org/web/packages/rocc/
+  # JRip: RULE-BASED CLASSIFIER: https://cran.r-project.org/web/packages/RWeka/
+  # PART: RUE-BASED CLASSIFIER: https://cran.r-project.org/web/packages/RWeka/
   
   fast.models <- c("AdaBag", "AdaBoost.M1", "bagFDAGCV", "LogitBoost", "J48", "C5.0", "multinom",
                    "RFlda", "fda", "protoclass", "hda", "hdda", "lvq", "lssvmRadial", "lda2", 
                    "stepLDA", "dwdLinear", "LMT", "mda", "naive_bayes", "nb", "pam", "ownn",
-                   "pda", "pda2", "stepQDA", "rFerns", "rda", "regLogistic")
+                   "pda", "pda2", "stepQDA", "rFerns", "rda", "regLogistic", "rocc", "JRip",
+                   "PART")
   AdaBag.Grid <-  expand.grid(mfinal = c(3, 6), maxdepth = c(5, 10))
   AdaBoost.M1.Grid <-  expand.grid(mfinal = c(3, 6), maxdepth = c(5, 10), coeflearn = "Zhu")
   bagFDAGCV.Grid <-  expand.grid(degree = c(1, 2))
@@ -271,6 +276,9 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   rFerns.Grid <-  expand.grid(depth = c(1,8))
   rda.Grid <-  expand.grid(gamma = seq(0.1, 1, 0.3), lambda =  seq(0.1, 1, 0.3))
   regLogistic.Grid <-  expand.grid(cost = seq(0.1, 0.9, 0.3), loss = c("L1", "L2_dual", "L2_primal"), epsilon = 0.01)
+  rocc.Grid <-  expand.grid(xgenes = 1:ncol(dataTrain))
+  JRip.Grid <-  expand.grid(NumOpt  = seq(1,15,5), NumFolds  = seq(1,15,5), MinWeights  = 1)
+  PART.Grid <-  expand.grid(threshold = seq(0.1,0.5,0.1), pruned = c("yes", "no"))
   
   # bagFDA: BAGGED FLEXIBLE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/earth/ : https://cran.r-project.org/web/packages/mda/
   # dwdPoly: DISTANCE WEIGHTED DISCRIMINATION WITH POLYNOMIAL KERNEL: https://cran.r-project.org/web/packages/kerndwd/
@@ -291,22 +299,16 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   models.Results <- list()
   for (model in fast.models) {
     model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-    model.Fit <- train(fmla, data = dataTrain, 
-                       method = model, 
-                       trControl = fitControl,
-                       tuneGrid = model.Grid)
+    fitting(model.Grid, model, fmla, dataTrain, fitControl)
     #models.Results <- rbind(models.Results, model.Fit$results)
     #plot(model.Fit)
-    print(model.Fit$results)
+    #print(model.Fit$results)
   }
   
   if (slow) {
     for (model in slow.models) {
       model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-      model.Fit <- train(fmla, data = dataTrain, 
-                         method = model, 
-                         trControl = fitControl,
-                         tuneGrid = model.Grid)
+      fitting(model.Grid, model, fmla, dataTrain, fitControl)
       
       #models.Results <- rbind(models.Results, model.Fit$results)
       # plot(model.Fit)
@@ -364,6 +366,27 @@ model.Fit <- train(fmla, data = dataTrain, #dataTrain
                    trControl = fitControl,
                    tuneGrid = model.Grid)
 getModelInfo('PenalizedLDA')
+plot(model.Fit)
+model.Fit
+
+
+model.Grid <-  expand.grid(lambda = 0.1, hp = 0.5, penalty = c("L1", "L2"))
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "rrlda", 
+                   trControl = fitControl,
+                   tuneGrid = model.Grid)
+getModelInfo('rrlda')
+plot(model.Fit)
+model.Fit
+
+
+# Data must be factor
+model.Grid <-  expand.grid(k = 3, epsilon = 0.01, smooth = 1, final_smooth = 3, direction = c("forward", "backwards"))
+model.Fit <- train(fmla, data = dataTrain, #dataTrain
+                   method = "nbSearch", 
+                   trControl = fitControl,
+                   tuneGrid = model.Grid)
+getModelInfo('nbSearch')
 plot(model.Fit)
 model.Fit
 
@@ -434,4 +457,5 @@ tryCatch({message(paste(rep('-', 20), collapse = ''))
   finally = {
     message(paste(model, 'FINISHED',sep = ' '))})
 }
+
 

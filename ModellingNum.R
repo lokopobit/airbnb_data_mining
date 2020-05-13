@@ -137,13 +137,10 @@ target.num.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow 
   models.Results <- list()
   for (model in fast.models) {
     model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-    model.Fit <- train(fmla, data = dataTrain, 
-                       method = model, 
-                       trControl = fitControl,
-                       tuneGrid = model.Grid)
+    fitting(model.Grid, model, fmla, dataTrain, fitControl)
     #models.Results <- rbind(models.Results, model.Fit$results)
     #plot(model.Fit)
-    print(model.Fit$results)
+    #print(model.Fit$results)
   }
   
   if (slow) {
