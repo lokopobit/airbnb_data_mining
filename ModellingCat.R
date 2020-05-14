@@ -41,10 +41,10 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 
 model.Grid <-  expand.grid(k = 3, epsilon = 0.01, smooth = 1, final_smooth = 3, direction = c("forward", "backwards"))
 model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "nbSearch", 
+                   method = "sda", 
                    trControl = fitControl,
                    tuneGrid = model.Grid)
-getModelInfo('nbSearch')
+getModelInfo('sda')
 plot(model.Fit)
 model.Fit
 
