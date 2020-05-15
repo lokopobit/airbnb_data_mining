@@ -4,6 +4,7 @@
 
 # Load external libreries 
 library(caret)
+library(rlist)
 library(doParallel)
 
 # Graphics sep up
@@ -39,7 +40,7 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 ####################### MODELS WITHOUT HYPERPARAMETERS #####################
 ############################################################################
 
-model.Grid <-  expand.grid(k = 3, epsilon = 0.01, smooth = 1, final_smooth = 3, direction = c("forward", "backwards"))
+model.Grid <-  expand.grid(diagonal = c(TRUE,FALSE), lambda = seq(0, 1, length = 0.3))
 model.Fit <- train(fmla, data = dataTrain, #dataTrain
                    method = "sda", 
                    trControl = fitControl,
@@ -47,7 +48,6 @@ model.Fit <- train(fmla, data = dataTrain, #dataTrain
 getModelInfo('sda')
 plot(model.Fit)
 model.Fit
-
 
 ###################### BINARY CLASSIFICATION ONLY ##########################
 target.catBin.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow = FALSE) {
@@ -183,10 +183,10 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitControl, parallel = TRUE, sl
   models.Results <- list()
   for (model in fast.models) {
     model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-    fitting(model.Grid, model, fmla, dataTrain, fitControl)
-    #models.Results <- rbind(models.Results, model.Fit$results)
-    #plot(model.Fit)
-    #print(model.Fit$results)
+    model.Fit <- fitting(model.Grid, model, fmla, dataTrain, fitControl)
+    browser
+    if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
+    if (match(model,fast.models) != 1) {print(summary(resamples(models.Results)))}
   }
   
   if (slow) {
@@ -241,12 +241,13 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   # rocc: ROC-BASED CLASSIFIER: https://cran.r-project.org/web/packages/rocc/
   # JRip: RULE-BASED CLASSIFIER: https://cran.r-project.org/web/packages/RWeka/
   # PART: RUE-BASED CLASSIFIER: https://cran.r-project.org/web/packages/RWeka/
+  # sda: SHRINKAGE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/sda/
   
   fast.models <- c("AdaBag", "AdaBoost.M1", "bagFDAGCV", "LogitBoost", "J48", "C5.0", "multinom",
                    "RFlda", "fda", "protoclass", "hda", "hdda", "lvq", "lssvmRadial", "lda2", 
                    "stepLDA", "dwdLinear", "LMT", "mda", "naive_bayes", "nb", "pam", "ownn",
                    "pda", "pda2", "stepQDA", "rFerns", "rda", "regLogistic", "rocc", "JRip",
-                   "PART")
+                   "PART", "sda")
   AdaBag.Grid <-  expand.grid(mfinal = c(3, 6), maxdepth = c(5, 10))
   AdaBoost.M1.Grid <-  expand.grid(mfinal = c(3, 6), maxdepth = c(5, 10), coeflearn = "Zhu")
   bagFDAGCV.Grid <-  expand.grid(degree = c(1, 2))
@@ -279,6 +280,7 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   rocc.Grid <-  expand.grid(xgenes = 1:ncol(dataTrain))
   JRip.Grid <-  expand.grid(NumOpt  = seq(1,15,5), NumFolds  = seq(1,15,5), MinWeights  = 1)
   PART.Grid <-  expand.grid(threshold = seq(0.1,0.5,0.1), pruned = c("yes", "no"))
+  sda.Grid <-  expand.grid(diagonal = c(TRUE,FALSE), lambda = seq(0, 1, length = 0.3))
   
   # bagFDA: BAGGED FLEXIBLE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/earth/ : https://cran.r-project.org/web/packages/mda/
   # dwdPoly: DISTANCE WEIGHTED DISCRIMINATION WITH POLYNOMIAL KERNEL: https://cran.r-project.org/web/packages/kerndwd/
@@ -447,9 +449,10 @@ tryCatch({message(paste(rep('-', 20), collapse = ''))
                                                method = model, 
                                                trControl = fitControl,
                                                tuneGrid = model.Grid))
-  print(model.Fit$results)
+  # print(model.Fit$results)
   et <- Sys.time()
-  print(et-st)},
+  print(et-st)
+  return(model.Fit)},
   error = function(cond) {
     message('ERROR:')
     message(cond)
