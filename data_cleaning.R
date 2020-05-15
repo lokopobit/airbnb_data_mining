@@ -37,8 +37,12 @@ newdata <- subset(data, select = -c(name,id, listing_url, scrape_id, last_scrape
 
 # We filter by Private  and remove that column
 # 8128 records are deleted
-newdata <- newdata[as.character(newdata$room_type) == 'Private room',]
-newdata$room_type = NULL
+# newdata <- newdata[as.character(newdata$room_type) == 'Entire home/apt',]
+# newdata$room_type = NULL
+
+# Remove dollar sign of price features and convert them to numeric data type
+newdata$price = as.numeric(gsub("\\$", "", newdata$price))
+newdata$extra_people = as.numeric(gsub("\\$", "", newdata$extra_people))
 
 # Remove records containing not available (NA) cells 
 if (sum(is.na(newdata[,])) == 0) {
@@ -56,10 +60,6 @@ is.special <- function(x){
   if (is.numeric(x)) !is.finite(x) else is.na(x)
 }
 if(sum(sapply(newdata, is.special)) == 0) print('There are NO INF or NAN values')
-
-# Remove dollar sign of price features and convert them to numeric data type
-newdata$price = as.numeric(gsub("\\$", "", newdata$price))
-newdata$extra_people = as.numeric(gsub("\\$", "", newdata$extra_people))
 
 # Outliers treatment. The criterion considered are those records beyond the extremes
 # of the whiskers of the box plot (for unimodal and symmetrical data)
@@ -103,6 +103,12 @@ newdata <- newdata[aux,]
 rules <- editfile('rules.txt')
 ve <- violatedEdits(rules, newdata)
 summary(ve)
+
+# Crate dummy ariables
+newdata <- dummy_cols(newdata, c('room_type'), remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+
+# Make syntactically valid names 
+names(newdata) <- make.names(names(newdata), unique=TRUE)
 
 # Save newdata
 print('Saving clean data')

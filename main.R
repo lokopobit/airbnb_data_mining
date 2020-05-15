@@ -2,6 +2,7 @@
 
 # Load internal libreries
 source('data_cleaning.R')
+source('ModellingCat.R')
 
 
 
@@ -10,6 +11,9 @@ clean_data <- cleaning()
 
 
 # Data regression
+
+
+# Data classification
 
 
 

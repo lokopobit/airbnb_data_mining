@@ -6,6 +6,7 @@
 library(caret)
 library(rlist)
 library(doParallel)
+library(fastDummies)
 
 # Graphics sep up
 trellis.par.set(caretTheme())
@@ -40,14 +41,14 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 ####################### MODELS WITHOUT HYPERPARAMETERS #####################
 ############################################################################
 
-model.Grid <-  expand.grid(diagonal = c(TRUE,FALSE), lambda = seq(0, 1, length = 0.3))
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "sda", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
-getModelInfo('sda')
-plot(model.Fit)
-model.Fit
+# model.Grid <-  expand.grid(diagonal = c(TRUE,FALSE), lambda = seq(0, 1, length = 0.3))
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "sda", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# getModelInfo('sda')
+# plot(model.Fit)
+# model.Fit
 
 ###################### BINARY CLASSIFICATION ONLY ##########################
 target.catBin.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow = FALSE) {
@@ -151,11 +152,11 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitControl, parallel = TRUE, sl
   
   fast.models <- c("adaboost", "ada", "C5.0Cost", "rpartCost", "deepboost", "svmLinearWeights2",
                    "svmLinearWeights", "PRIM", "rotationForest", "rotationForestCp")
-  adaboost.Grid <-  expand.grid(nIter = 100, method = c("Adaboost.M1", "Real adaboost"))
-  ada.Grid <-  expand.grid(iter = 100, maxdepth = c(4, 6), nu = 0.5)
+  adaboost.Grid <-  expand.grid(nIter = 50, method = c("Adaboost.M1", "Real adaboost"))
+  ada.Grid <-  expand.grid(iter = 50, maxdepth = c(4, 6), nu = 0.5)
   C5.0Cost.Grid <-  expand.grid(trials = seq(10,30,10), model = c("tree", "rules"), winnow = c(TRUE, FALSE), cost = 1:3)
   rpartCost.Grid <-  expand.grid(cp = 1:3, Cost = 1:3)
-  deepboost.Grid <-  expand.grid(num_iter = seq(10,30,20), tree_depth = 5:6, beta = seq(0.2,0.3,0.1), lambda = 0.3, loss_type = "l")
+  deepboost.Grid <-  expand.grid(num_iter = 100, tree_depth = 5:6, beta = seq(0.2,0.3,0.1), lambda = 0.3, loss_type = "l")
   svmLinearWeights2.Grid <-  expand.grid(cost = c(0.1,0.9), Loss = c("L1","L2"), weight = c(5,15))
   svmLinearWeights.Grid <-  expand.grid(cost = seq(2,9,3), weight = c(2, 4))
   PRIM.Grid <-  expand.grid(peel.alpha = seq(0.01,0.25,0.09), paste.alpha = seq(0.01,0.25,0.2), mass.min = seq(0.01,0.25,0.2))
@@ -184,9 +185,8 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitControl, parallel = TRUE, sl
   for (model in fast.models) {
     model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
     model.Fit <- fitting(model.Grid, model, fmla, dataTrain, fitControl)
-    browser
     if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
-    if (match(model,fast.models) != 1) {print(summary(resamples(models.Results)))}
+    if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
   }
   
   if (slow) {
@@ -301,10 +301,10 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   models.Results <- list()
   for (model in fast.models) {
     model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-    fitting(model.Grid, model, fmla, dataTrain, fitControl)
-    #models.Results <- rbind(models.Results, model.Fit$results)
-    #plot(model.Fit)
-    #print(model.Fit$results)
+    model.Fit <- fitting(model.Grid, model, fmla, dataTrain, fitControl)
+    if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
+    if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
+
   }
   
   if (slow) {
@@ -326,139 +326,141 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
 }
 
 
+# Auxiliary function for fitting
+fitting <- function(model.Grid, model, fmla, dataTrain, fitControl) {
+  tryCatch({message(paste(rep('-', 20), collapse = ''))
+    st <- Sys.time()
+    message(paste('TRYING:', model, sep = ' '))
+    garbage <- capture.output(model.Fit <- train(fmla, data = dataTrain, 
+                                                 method = model, 
+                                                 trControl = fitControl,
+                                                 tuneGrid = model.Grid))
+    # print(model.Fit$results)
+    et <- Sys.time()
+    print(et-st)
+    return(model.Fit)},
+    error = function(cond) {
+      message('ERROR:')
+      message(cond)
+      return(NA)},
+    finally = {
+      message(paste(model, 'FINISHED',sep = ' '))})
+}
+
 ############################################################################
 ####################### MODELS NOT WORKING  ################################
 ############################################################################
-
-
-model.Grid <-  expand.grid(tau = 0.5)
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "lssvmLinear", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
-getModelInfo('lssvmLinear')
-plot(model.Fit)
-model.Fit
-
-
-model.Grid <-  expand.grid(degree = 1, scale = 1, tau = 0.5)
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "lssvmPoly", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
-getModelInfo('lssvmPoly')
-plot(model.Fit)
-model.Fit
-
-
-model.Grid <-  expand.grid(k = 3)
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "loclda", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
-getModelInfo('loclda')
-plot(model.Fit)
-model.Fit
-
-
-# Error in .(lambda) : no se pudo encontrar la función "."
-model.Grid <-  expand.grid(lambda = seq(0.1,0.9,0.3), K = 2)
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "PenalizedLDA", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
-getModelInfo('PenalizedLDA')
-plot(model.Fit)
-model.Fit
-
-
-model.Grid <-  expand.grid(lambda = 0.1, hp = 0.5, penalty = c("L1", "L2"))
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "rrlda", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
-getModelInfo('rrlda')
-plot(model.Fit)
-model.Fit
-
-
-# Data must be factor
-model.Grid <-  expand.grid(k = 3, epsilon = 0.01, smooth = 1, final_smooth = 3, direction = c("forward", "backwards"))
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "nbSearch", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
-getModelInfo('nbSearch')
-plot(model.Fit)
-model.Fit
+# 
+# 
+# model.Grid <-  expand.grid(tau = 0.5)
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "lssvmLinear", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# getModelInfo('lssvmLinear')
+# plot(model.Fit)
+# model.Fit
+# 
+# 
+# model.Grid <-  expand.grid(degree = 1, scale = 1, tau = 0.5)
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "lssvmPoly", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# getModelInfo('lssvmPoly')
+# plot(model.Fit)
+# model.Fit
+# 
+# 
+# model.Grid <-  expand.grid(k = 3)
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "loclda", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# getModelInfo('loclda')
+# plot(model.Fit)
+# model.Fit
+# 
+# 
+# # Error in .(lambda) : no se pudo encontrar la función "."
+# model.Grid <-  expand.grid(lambda = seq(0.1,0.9,0.3), K = 2)
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "PenalizedLDA", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# getModelInfo('PenalizedLDA')
+# plot(model.Fit)
+# model.Fit
+# 
+# 
+# model.Grid <-  expand.grid(lambda = 0.1, hp = 0.5, penalty = c("L1", "L2"))
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "rrlda", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# getModelInfo('rrlda')
+# plot(model.Fit)
+# model.Fit
+# 
+# 
+# # Data must be factor
+# model.Grid <-  expand.grid(k = 3, epsilon = 0.01, smooth = 1, final_smooth = 3, direction = c("forward", "backwards"))
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "nbSearch", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# getModelInfo('nbSearch')
+# plot(model.Fit)
+# model.Fit
 
 ##########################################################################
 ###################### SPECIAL MODELS ####################################
 ##########################################################################
 
-# Train data must be 0 or 1
-model.Grid <-  expand.grid(lambda.freqs = c(0.1, 0.2))
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "binda", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
+# # Train data must be 0 or 1
+# model.Grid <-  expand.grid(lambda.freqs = c(0.1, 0.2))
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "binda", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# 
+# plot(model.Fit)
+# model.Fit
+# 
+# 
+# # Data must be factor
+# model.Grid <-  expand.grid(smooth = c(3, 10), prior = 0.1)
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "manb", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# getModelInfo('manb')
+# plot(model.Fit)
+# model.Fit
+# 
+# 
+# # Data must be factor
+# model.Grid <-  expand.grid(smooth = seq(1,10,2))
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "nbDiscrete", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# getModelInfo('nbDiscrete')
+# plot(model.Fit)
+# model.Fit
+# 
+# 
+# # Data must be factor
+# model.Grid <-  expand.grid(smooth = seq(1,10,2))
+# model.Fit <- train(fmla, data = dataTrain, #dataTrain
+#                    method = "awnb", 
+#                    trControl = fitControl,
+#                    tuneGrid = model.Grid)
+# getModelInfo('awnb')
+# plot(model.Fit)
+# model.Fit
 
-plot(model.Fit)
-model.Fit
 
 
-# Data must be factor
-model.Grid <-  expand.grid(smooth = c(3, 10), prior = 0.1)
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "manb", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
-getModelInfo('manb')
-plot(model.Fit)
-model.Fit
-
-
-# Data must be factor
-model.Grid <-  expand.grid(smooth = seq(1,10,2))
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "nbDiscrete", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
-getModelInfo('nbDiscrete')
-plot(model.Fit)
-model.Fit
-
-
-# Data must be factor
-model.Grid <-  expand.grid(smooth = seq(1,10,2))
-model.Fit <- train(fmla, data = dataTrain, #dataTrain
-                   method = "awnb", 
-                   trControl = fitControl,
-                   tuneGrid = model.Grid)
-getModelInfo('awnb')
-plot(model.Fit)
-model.Fit
-
-
-# Auxiliary function for fitting
-fitting <- function(model.Grid, model, fmla, dataTrain, fitControl) {
-tryCatch({message(paste(rep('-', 20), collapse = ''))
-  st <- Sys.time()
-  message(paste('TRYING:', model, sep = ' '))
-  garbage <- capture.output(model.Fit <- train(fmla, data = dataTrain, 
-                                               method = model, 
-                                               trControl = fitControl,
-                                               tuneGrid = model.Grid))
-  # print(model.Fit$results)
-  et <- Sys.time()
-  print(et-st)
-  return(model.Fit)},
-  error = function(cond) {
-    message('ERROR:')
-    message(cond)
-    return(NA)},
-  finally = {
-    message(paste(model, 'FINISHED',sep = ' '))})
-}
 
 
