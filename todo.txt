@@ -3,3 +3,5 @@ include host_neighbourhood
 outlier detection
 https://www.jstatsoft.org/article/view/v085i11
 caretEnsemble
+subset selection
+variable importance
