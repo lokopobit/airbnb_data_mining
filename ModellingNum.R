@@ -1,29 +1,4 @@
 
-# http://topepo.github.io/caret/
-# https://cran.r-project.org/web/packages/caret/caret.pdf 
-
-# Load external libreries 
-library(caret)
-library(doParallel)
-
-# Graphics sep up
-trellis.par.set(caretTheme())
-
-# DATA SPLITTING
-num_target <- 'price'
-fmla <- fmla <- as.formula(paste(num_target, '~.'))
-
-dataset_name <- deparse(substitute(clean_data))
-y <- eval(parse(text = paste(dataset_name, '$', num_target, sep='')))
-trainIndex <- createDataPartition(y, p = .8, list = FALSE, times = 1)
-
-dataTrain <- clean_data[trainIndex,]
-dataTest <- clean_data[-trainIndex,]
-
-
-# RESAMPLING: 10-fold CV repeated ten times
-fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
-
 ############################################################################
 ####################### MODELS WITHOUT HYPERPARAMETERS #####################
 ############################################################################
@@ -45,18 +20,16 @@ target.num.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slo
   
   models.Results <- list()
   for (model in fast.models) {
-    model.Fit <- train(fmla, data = dataTrain, 
-                          method = model, 
-                          trControl = fitControl)
-    models.Results <- rbind(models.Results, model.Fit$results)
+    model.Fit <- fittingNoHyper(model, fmla, dataTrain, fitControl)
+    if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
+    if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
   }
   
   if (slow) {
     for (model in slow.models) {
-      model.Fit <- train(fmla, data = dataTrain, 
-                         method = model, 
-                         trControl = fitControl)
-      models.Results <- rbind(models.Results, model.Fit$results)
+      model.Fit <- fittingNoHyper(model, fmla, dataTrain, fitControl)
+      if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
+      if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
     }
   }
   
@@ -137,22 +110,17 @@ target.num.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow 
   models.Results <- list()
   for (model in fast.models) {
     model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-    fitting(model.Grid, model, fmla, dataTrain, fitControl)
-    #models.Results <- rbind(models.Results, model.Fit$results)
-    #plot(model.Fit)
-    #print(model.Fit$results)
+    model.Fit <- fittingHyper(model.Grid, model, fmla, dataTrain, fitControl)
+    if (sum(!is.na(model.Fit)) > 2) {models.Results[[model]] <- model.Fit}
+    if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
   }
   
   if (slow) {
     for (model in slow.models) {
       model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-      model.Fit <- train(fmla, data = dataTrain, 
-                         method = model, 
-                         trControl = fitControl,
-                         tuneGrid = model.Grid)
-      
-      #models.Results <- rbind(models.Results, model.Fit$results)
-      # plot(model.Fit)
+      model.Fit <- fittingHyper(model.Grid, model, fmla, dataTrain, fitControl)
+      if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
+      if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
     }
   }
   
@@ -165,58 +133,101 @@ target.num.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow 
 }
 
 
+# Auxiliary function for hyperparameter fitting
+fittingHyper <- function(model.Grid, model, fmla, dataTrain, fitControl) {
+  tryCatch({message(paste(rep('-', 20), collapse = ''))
+    st <- Sys.time()
+    message(paste('TRYING:', model, sep = ' '))
+    garbage <- capture.output(model.Fit <- train(fmla, data = dataTrain, 
+                                                 method = model, 
+                                                 trControl = fitControl,
+                                                 tuneGrid = model.Grid))
+    # print(model.Fit$results)
+    et <- Sys.time()
+    print(et-st)
+    return(model.Fit)},
+    error = function(cond) {
+      message('ERROR:')
+      message(cond)
+      return(NA)},
+    finally = {
+      message(paste(model, 'FINISHED',sep = ' '))})
+}
+
+
+# Auxiliary function for NO hyperparameter fitting
+fittingNoHyper <- function(model, fmla, dataTrain, fitControl) {
+  tryCatch({message(paste(rep('-', 20), collapse = ''))
+    st <- Sys.time()
+    message(paste('TRYING:', model, sep = ' '))
+    garbage <- capture.output(model.Fit <- train(fmla, data = dataTrain, 
+                                                 method = model, 
+                                                 trControl = fitControl))
+    print(model.Fit$results)
+    et <- Sys.time()
+    print(et-st)
+    return(model.Fit)},
+    error = function(cond) {
+      message('ERROR:')
+      message(cond)
+      return(NA)},
+    finally = {
+      message(paste(model, 'FINISHED',sep = ' '))})
+}
+
+
 ############################################################################
 ####################### MODELS NOT WORKING  ################################
 ############################################################################
 
-# SUPERPC: SUPERVISED PRINCIPAL COMPONENT ANALYSIS --- ERROR: STOPING ---
-# https://cran.r-project.org/web/packages/superpc/
-
-SUPERPC.Grid <-  expand.grid(threshold = seq(0.1,0.5,0.1), n.components = 2:4)
-
-SUPERPC.Fit1 <- train(fmla, data = dataTrain, 
-                        method = "superpc", 
-                        trControl = fitControl,
-                        tuneGrid = SUPERPC.Grid)
-SUPERPC.Fit1
-plot(SUPERPC.Fit1)
-
-
-# NEGATIVE BINOMIAL GENERILIZED MODEL --- NEEDS TO BE CHECKED
-# https://cran.r-project.org/web/packages/MASS/
-
-NBGrid <-  expand.grid(link = 'identity')
-
-NBFit1 <- train(fmla, data = dataTrain, 
-                method = "glm.nb", 
-                trControl = fitControl,
-                tuneGrid = NBGrid)
-NBFit1
-
-
-# M5RULES: MODEL RULES
-# M5: MODEL TREE
-# https://cran.r-project.org/web/packages/RWeka/  --- PROBLEM WITH JAVA ---
-
-M5RULESGrid <-  expand.grid(pruned = TRUE, smoothed = TRUE)
-
-M5RULESFit1 <- train(fmla, data = dataTrain, 
-                     method = "M5Rules", # 'M5'
-                     trControl = fitControl,
-                     tuneGrid = M5RULESGrid)
-M5RULESFit1
-
-
-# RQNC: NON-CONVEX PENALIZED QUANTILE REGRESSION  -- OBJETO deriv_func no encontrado
-# https://cran.r-project.org/web/packages/rqPen/
-
-RQNCGrid <-  expand.grid(lambda = seq(0.1,0.9,0.1), penalty = c(0.1,0.2))
-
-RQNCFit1 <- train(fmla, data = dataTrain, 
-                  method = "rqnc", 
-                  trControl = fitControl,
-                  tuneGrid = RQNCGrid)
-RQNCFit1
+# # SUPERPC: SUPERVISED PRINCIPAL COMPONENT ANALYSIS --- ERROR: STOPING ---
+# # https://cran.r-project.org/web/packages/superpc/
+# 
+# SUPERPC.Grid <-  expand.grid(threshold = seq(0.1,0.5,0.1), n.components = 2:4)
+# 
+# SUPERPC.Fit1 <- train(fmla, data = dataTrain, 
+#                         method = "superpc", 
+#                         trControl = fitControl,
+#                         tuneGrid = SUPERPC.Grid)
+# SUPERPC.Fit1
+# plot(SUPERPC.Fit1)
+# 
+# 
+# # NEGATIVE BINOMIAL GENERILIZED MODEL --- NEEDS TO BE CHECKED
+# # https://cran.r-project.org/web/packages/MASS/
+# 
+# NBGrid <-  expand.grid(link = 'identity')
+# 
+# NBFit1 <- train(fmla, data = dataTrain, 
+#                 method = "glm.nb", 
+#                 trControl = fitControl,
+#                 tuneGrid = NBGrid)
+# NBFit1
+# 
+# 
+# # M5RULES: MODEL RULES
+# # M5: MODEL TREE
+# # https://cran.r-project.org/web/packages/RWeka/  --- PROBLEM WITH JAVA ---
+# 
+# M5RULESGrid <-  expand.grid(pruned = TRUE, smoothed = TRUE)
+# 
+# M5RULESFit1 <- train(fmla, data = dataTrain, 
+#                      method = "M5Rules", # 'M5'
+#                      trControl = fitControl,
+#                      tuneGrid = M5RULESGrid)
+# M5RULESFit1
+# 
+# 
+# # RQNC: NON-CONVEX PENALIZED QUANTILE REGRESSION  -- OBJETO deriv_func no encontrado
+# # https://cran.r-project.org/web/packages/rqPen/
+# 
+# RQNCGrid <-  expand.grid(lambda = seq(0.1,0.9,0.1), penalty = c(0.1,0.2))
+# 
+# RQNCFit1 <- train(fmla, data = dataTrain, 
+#                   method = "rqnc", 
+#                   trControl = fitControl,
+#                   tuneGrid = RQNCGrid)
+# RQNCFit1
 
 
 

@@ -9,6 +9,7 @@ library(doParallel)
 
 # Load internal libreries
 source('data_cleaning.R')
+source('ModellingNum.R')
 source('ModellingCat.R')
 
 # Graphics sep up
@@ -19,6 +20,23 @@ clean_data <- cleaning()
 
 
 # Data regression
+# DATA SPLITTING
+num_target <- 'price'
+fmla <- fmla <- as.formula(paste(num_target, '~.'))
+
+dataset_name <- deparse(substitute(clean_data))
+y <- eval(parse(text = paste(dataset_name, '$', num_target, sep='')))
+trainIndex <- createDataPartition(y, p = .1, list = FALSE, times = 1)
+
+dataTrain <- clean_data[trainIndex,]
+dataTest <- clean_data[-trainIndex,]
+
+
+# RESAMPLING: 10-fold CV repeated ten times
+fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
+
+target.num.NoHyper(fmla, dataTrain, fitcontrol, parallel = FALSE, slow = FALSE)
+target.num.Hyper(fmla, dataTrain, fitcontrol, parallel = FALSE, slow = FALSE)
 
 
 # Data classification
@@ -47,7 +65,6 @@ dataTest <- clean_data[-trainIndex,]
 # RESAMPLING: 10-fold CV repeated ten times
 fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 
-# BINARY CLASSIFICATION WITH HYPERPARAMETERS
 model.Results <- target.catMult.NoHyper(fmla, dataTrain, fitControl, parallel = FALSE)
 model.Results <- target.catBin.Hyper(fmla, dataTrain, fitControl, parallel = FALSE, slow = FALSE)
 model.Results <- target.catMult.Hyper(fmla, dataTrain, fitControl, parallel = FALSE, slow = FALSE)
