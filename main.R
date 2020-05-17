@@ -48,6 +48,7 @@ dataTest <- clean_data[-trainIndex,]
 fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 
 # BINARY CLASSIFICATION WITH HYPERPARAMETERS
-model.Results <- target.catBin.Hyper(fmla, dataTrain, fitControl, parallel = TRUE, slow = FALSE)
-model.Results <- target.catMult.Hyper(fmla, dataTrain, fitControl, parallel = TRUE, slow = FALSE)
+model.Results <- target.catMult.NoHyper(fmla, dataTrain, fitControl, parallel = FALSE)
+model.Results <- target.catBin.Hyper(fmla, dataTrain, fitControl, parallel = FALSE, slow = FALSE)
+model.Results <- target.catMult.Hyper(fmla, dataTrain, fitControl, parallel = FALSE, slow = FALSE)
 

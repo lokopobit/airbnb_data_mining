@@ -3,46 +3,8 @@
 ####################### MODELS WITHOUT HYPERPARAMETERS #####################
 ############################################################################
 
-###################### BINARY CLASSIFICATION ONLY ##########################
-target.catBin.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow = FALSE) {
-  # 
-  fast.models <- c("")
-  
-  # 
-  slow.models <- c("")
-  
-  if (parallel) {
-    cl <- makePSOCKcluster(3)
-    registerDoParallel(cl)
-  }
-  
-  models.Results <- list()
-  for (model in fast.models) {
-    model.Fit <- train(fmla, data = dataTrain, 
-                       method = model, 
-                       trControl = fitControl)
-    models.Results <- rbind(models.Results, model.Fit$results)
-  }
-  
-  if (slow) {
-    for (model in slow.models) {
-      model.Fit <- train(fmla, data = dataTrain, 
-                         method = model, 
-                         trControl = fitControl)
-      models.Results <- rbind(models.Results, model.Fit$results)
-    }
-  }
-  
-  if (parallel) {
-    stopCluster(cl)
-    registerDoSEQ()
-  }
-  
-  return(models.Results)
-}
-
 ###################### MULTICLASS CLASSIFICATION #############################
-target.catMult.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow = FALSE) {
+target.catMult.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE) {
   # lda: LINEAR DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/MASS/
   # Mlda: MAXIMUN UNCERTAINTY LINEAR DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/HiDimDA/
   # qda: QUADRATIC DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/MASS/
@@ -58,8 +20,6 @@ target.catMult.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE,
   fast.models <- c("lda", "Mlda", "qda", "Linda", "QdaCov", "RSimca", "CSimca", "C5.0Rules", 
                    "C5.0Tree", "OneR", "slda")
   
-  # 
-  slow.models <- c("")
   
   if (parallel) {
     cl <- makePSOCKcluster(3)
@@ -68,20 +28,11 @@ target.catMult.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE,
   
   models.Results <- list()
   for (model in fast.models) {
-    model.Fit <- train(fmla, data = dataTrain, 
-                       method = model, 
-                       trControl = fitControl)
-    models.Results <- rbind(models.Results, model.Fit$results)
+    model.Fit <- fittingNoHyper(model, fmla, dataTrain, fitControl)
+    if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
+    if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
   }
   
-  if (slow) {
-    for (model in slow.models) {
-      model.Fit <- train(fmla, data = dataTrain, 
-                         method = model, 
-                         trControl = fitControl)
-      models.Results <- rbind(models.Results, model.Fit$results)
-    }
-  }
   
   if (parallel) {
     stopCluster(cl)
@@ -98,45 +49,46 @@ target.catMult.NoHyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE,
 
 ###################### BINARY CLASSIFICATION ONLY ##########################
 target.catBin.Hyper <- function(fmla, dataTrain, fitControl, parallel = TRUE, slow = FALSE) {
-  # ADABOOST: ADABOOST CLASSIFICATION TREES: https://cran.r-project.org/web/packages/fastAdaboost/
   # ada: BOOSTED CLASSIFICATION TREES: https://cran.r-project.org/web/packages/ada/ : https://cran.r-project.org/web/packages/plyr/
   # C5.0Cost: COST-SENSITIVE C5.0: https://cran.r-project.org/web/packages/C50/ : https://cran.r-project.org/web/packages/plyr/
   # rpartCost: COST-SENSITIVE CART: https://cran.r-project.org/web/packages/rpart/ : https://cran.r-project.org/web/packages/plyr/
   # deepboost: DEEPBOOST: https://cran.r-project.org/web/packages/deepboost/
   # svmLinearWeights2: L2 REGULARIZED LINEAR SUPPORT VECTOR MACHINES WITH CLASS WEIGHTS: https://cran.r-project.org/web/packages/LiblineaR/
   # svmLinearWeights: LINEAR SUPPORT VECTOR MACHINES WITH CLASS WEIGHTS: https://cran.r-project.org/web/packages/e1071/
-  # PRIM: PATIENT RULE INDUCTION METHOD: https://cran.r-project.org/web/packages/supervisedPRIM/
   # rotationForest: ROTATION FOREST: https://cran.r-project.org/web/packages/rotationForest/
   # rotationForestCp: ROTATION FOREST: https://cran.r-project.org/web/packages/rotationForest/
   # svmRadialWeights: SUPPORT VECTOR MACHINES WITH CLASS WEIGHTS: https://cran.r-project.org/web/packages/kernlab/
-  
-  fast.models <- c("adaboost", "ada", "C5.0Cost", "rpartCost", "deepboost", "svmLinearWeights2",
-                   "svmLinearWeights", "PRIM", "rotationForest", "rotationForestCp",
+  fast.models <- c("ada", "C5.0Cost", "rpartCost", "deepboost", "svmLinearWeights2",
+                   "svmLinearWeights", "rotationForest", "rotationForestCp",
                    "svmRadialWeights")
-  adaboost.Grid <-  expand.grid(nIter = 50, method = c("Adaboost.M1", "Real adaboost"))
+  
   ada.Grid <-  expand.grid(iter = 50, maxdepth = c(4, 6), nu = 0.5)
   C5.0Cost.Grid <-  expand.grid(trials = seq(10,30,10), model = c("tree", "rules"), winnow = c(TRUE, FALSE), cost = 1:3)
   rpartCost.Grid <-  expand.grid(cp = 1:3, Cost = 1:3)
   deepboost.Grid <-  expand.grid(num_iter = 100, tree_depth = 5:6, beta = seq(0.2,0.3,0.1), lambda = 0.3, loss_type = "l")
   svmLinearWeights2.Grid <-  expand.grid(cost = c(0.1,0.9), Loss = c("L1","L2"), weight = c(5,15))
   svmLinearWeights.Grid <-  expand.grid(cost = seq(2,9,3), weight = c(2, 4))
-  PRIM.Grid <-  expand.grid(peel.alpha = seq(0.01,0.25,0.09), paste.alpha = seq(0.01,0.25,0.2), mass.min = seq(0.01,0.25,0.2))
   rotationForest.Grid <-  expand.grid(K = seq(1,15,5), L = seq(1,15,5))
   rotationForestCp.Grid <-  expand.grid(K = seq(1,15,5), L = seq(1,15,5), cp = 0.1)
   svmRadialWeights.Grid <-  expand.grid(sigma = 2, C = c(2,5), Weight = c(2,5))
   
+  # ADABOOST: ADABOOST CLASSIFICATION TREES: https://cran.r-project.org/web/packages/fastAdaboost/
   # ORFlog: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # ORFpls: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # ORFridge: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # ORFsvm: OBLIQUE RANDOM FOREST: https://cran.r-project.org/web/packages/obliqueRF/
   # plr: PENALIZED LOGISTIC REGRESSION: https://cran.r-project.org/web/packages/stepPlr/
+  # PRIM: PATIENT RULE INDUCTION METHOD: https://cran.r-project.org/web/packages/supervisedPRIM/
+  slow.models <- c("adaboost", "ORFlog", "ORFpls", "ORFridge", "ORFsvm", "plr", "PRIM")
   
-  slow.models <- c("ORFlog", "ORFpls", "ORFridge", "ORFsvm", "plr")
+  adaboost.Grid <-  expand.grid(nIter = 50, method = c("Adaboost.M1", "Real adaboost"))
   ORFlog.Grid <-  expand.grid(mtry = 2)
   ORFpls.Grid <-  expand.grid(mtry = 2)
   ORFridge.Grid <-  expand.grid(mtry = 2)
   ORFsvm.Grid <-  expand.grid(mtry = 2)
   plr.Grid <-  expand.grid(lambda = seq(0.1,0.9,0.3), cp = c("aic", "bic"))
+  PRIM.Grid <-  expand.grid(peel.alpha = seq(0.01,0.25,0.09), paste.alpha = seq(0.01,0.25,0.2), mass.min = seq(0.01,0.25,0.2))
+  
   
   if (parallel) {
     cl <- makePSOCKcluster(3)
@@ -146,7 +98,7 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitControl, parallel = TRUE, sl
   models.Results <- list()
   for (model in fast.models) {
     model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-    model.Fit <- fitting(model.Grid, model, fmla, dataTrain, fitControl)
+    model.Fit <- fittingHyper(model.Grid, model, fmla, dataTrain, fitControl)
     if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
     if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
   }
@@ -154,10 +106,9 @@ target.catBin.Hyper <- function(fmla, dataTrain, fitControl, parallel = TRUE, sl
   if (slow) {
     for (model in slow.models) {
       model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-      fitting(model.Grid, model, fmla, dataTrain, fitControl)
-      
-      #models.Results <- rbind(models.Results, model.Fit$results)
-      # plot(model.Fit)
+      model.Fit <- fittingHyper(model.Grid, model, fmla, dataTrain, fitControl)
+      if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
+      if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
     }
   }
   
@@ -207,12 +158,12 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   # sdwd: SPARSE DISTNACE WEIGHTED DISCRIMINATION: https://cran.r-project.org/web/packages/sdwd/
   # sparseLDA: SPARSE LINEAR DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/sparseLDA/
   # wsrf: WEIGHTED SUBSPACE RANDOM FOREST: https://cran.r-project.org/web/packages/wsrf/
-  
   fast.models <- c("AdaBag", "AdaBoost.M1", "bagFDAGCV", "LogitBoost", "J48", "C5.0", "multinom",
                    "RFlda", "fda", "protoclass", "hda", "hdda", "lvq", "lssvmRadial", "lda2", 
                    "stepLDA", "dwdLinear", "LMT", "mda", "naive_bayes", "nb", "pam", "ownn",
                    "pda", "pda2", "stepQDA", "rFerns", "rda", "regLogistic", "rocc", "JRip",
                    "PART", "sda", "sdwd", "sparseLDA", "wsrf")
+  
   AdaBag.Grid <-  expand.grid(mfinal = c(3, 6), maxdepth = c(5, 10))
   AdaBoost.M1.Grid <-  expand.grid(mfinal = c(3, 6), maxdepth = c(5, 10), coeflearn = "Zhu")
   bagFDAGCV.Grid <-  expand.grid(degree = c(1, 2))
@@ -256,8 +207,8 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   # rmda: ROBUST MIXTURE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/robustDA/index.html
   # sparseLDA: SPARSE MIXTURE DISCRIMINANT ANALYSIS: https://cran.r-project.org/web/packages/sparseLDA/
   # snn: STABILIZED NEAREST NEIGHBOR CLASSIFIER: https://cran.r-project.org/web/packages/snn/
-  
   slow.models <- c("bagFDA", "dwdPoly", "dwdRadial", "rmda", "sparseLDA", "snn")
+  
   bagFDA.Grid <-  expand.grid(degree = c(1, 2), nprune = c (1,2))
   dwdPoly.Grid <-  expand.grid(lambda = 0.1, qval = 1, degree = 1, scale = 1)
   dwdRadial.Grid <-  expand.grid(lambda = 0.1, qval = 1, sigma = 4)
@@ -273,7 +224,7 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   models.Results <- list()
   for (model in fast.models) {
     model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-    model.Fit <- fitting(model.Grid, model, fmla, dataTrain, fitControl)
+    model.Fit <- fittingHyper(model.Grid, model, fmla, dataTrain, fitControl)
     if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
     if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
 
@@ -282,10 +233,9 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
   if (slow) {
     for (model in slow.models) {
       model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
-      fitting(model.Grid, model, fmla, dataTrain, fitControl)
-      
-      #models.Results <- rbind(models.Results, model.Fit$results)
-      # plot(model.Fit)
+      model.Fit <- fittingHyper(model.Grid, model, fmla, dataTrain, fitControl)
+      if (!sum(is.na(model.Fit))) {models.Results[[model]] <- model.Fit}
+      if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
     }
   }
   
@@ -298,8 +248,8 @@ target.catMult.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, s
 }
 
 
-# Auxiliary function for fitting
-fitting <- function(model.Grid, model, fmla, dataTrain, fitControl) {
+# Auxiliary function for hyperparameter fitting
+fittingHyper <- function(model.Grid, model, fmla, dataTrain, fitControl) {
   tryCatch({message(paste(rep('-', 20), collapse = ''))
     st <- Sys.time()
     message(paste('TRYING:', model, sep = ' '))
@@ -308,6 +258,27 @@ fitting <- function(model.Grid, model, fmla, dataTrain, fitControl) {
                                                  trControl = fitControl,
                                                  tuneGrid = model.Grid))
     # print(model.Fit$results)
+    et <- Sys.time()
+    print(et-st)
+    return(model.Fit)},
+    error = function(cond) {
+      message('ERROR:')
+      message(cond)
+      return(NA)},
+    finally = {
+      message(paste(model, 'FINISHED',sep = ' '))})
+}
+
+
+# Auxiliary function for NO hyperparameter fitting
+fittingNoHyper <- function(model, fmla, dataTrain, fitControl) {
+  tryCatch({message(paste(rep('-', 20), collapse = ''))
+    st <- Sys.time()
+    message(paste('TRYING:', model, sep = ' '))
+    garbage <- capture.output(model.Fit <- train(fmla, data = dataTrain, 
+                                                 method = model, 
+                                                 trControl = fitControl))
+    print(model.Fit$results)
     et <- Sys.time()
     print(et-st)
     return(model.Fit)},
