@@ -35,8 +35,8 @@ dataTest <- clean_data[-trainIndex,]
 # RESAMPLING: 10-fold CV repeated ten times
 fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 1)
 
-target.num.NoHyper(fmla, dataTrain, fitcontrol, parallel = FALSE, slow = FALSE)
-target.num.Hyper(fmla, dataTrain, fitcontrol, parallel = FALSE, slow = FALSE)
+model.Results <- target.num.NoHyper(fmla, dataTrain, fitcontrol, parallel = FALSE, slow = FALSE)
+model.Results <- target.num.Hyper(fmla, dataTrain, fitcontrol, parallel = FALSE, slow = FALSE)
 
 
 # Data classification

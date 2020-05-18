@@ -108,12 +108,21 @@ target.num.Hyper <- function(fmla, dataTrain, fitcontrol, parallel = TRUE, slow 
   }
   
   models.Results <- list()
+  model.varImp <- 0
   for (model in fast.models) {
     model.Grid <- eval(parse(text = paste(model, '.Grid', sep='')))
     model.Fit <- fittingHyper(model.Grid, model, fmla, dataTrain, fitControl)
-    if (sum(!is.na(model.Fit)) > 2) {models.Results[[model]] <- model.Fit}
+    if (sum(!is.na(model.Fit)) > 2) {
+      models.Results[[model]] <- model.Fit
+      browser()
+      model.varImp <- model.varImp + varImp(model.Fit)[[1]]
+    }
     if (length(models.Results) > 1) {print(summary(resamples(models.Results)))}
   }
+  model.varImp <- model.varImp / length(models.Results)
+  model.varImp <- data.frame(varName=row.names(model.varImp), varImp=model.varImp$Overall)
+  model.varImp <- model.varImp[order(-model.varImp$varImp),]
+  print(model.varImp[1:10,])
   
   if (slow) {
     for (model in slow.models) {
